@@ -1,0 +1,35 @@
+$kind: http-request
+description: |-
+  Idempotency-Key required. Restaurant must be open with DINITICKET enabled and remote join allowed. One active ticket per customer/restaurant; queue capacity and position enforced on server.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+  Idempotency key is initialized once. Keep it for exact retries; clear it for a new booking/order intent.
+url: "{{baseUrl}}/customer/dinitickets"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{ticketKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "restaurantId": "{{restaurantId}}",
+      "guestCount": 2
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("ticketKey")) pm.environment.set("ticketKey", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.id){pm.environment.set("diniTicketId",d.id);pm.environment.set("ticketVersion",d.version);}
+      }
+    language: text/javascript
+order: 1000

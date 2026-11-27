@@ -1,0 +1,3 @@
+package com.bookeat.wallet.service;
+import com.bookeat.wallet.dto.*;import com.bookeat.common.response.PageResponse;import java.util.*;
+public interface WalletService {WalletResponses.Balance balance(UUID actor);PageResponse<WalletResponses.Entry> history(UUID actor,int page,int size);List<WalletResponses.Rule> rules();WalletResponses.Redemption calculate(UUID actor,long points);WalletResponses.Balance redeem(UUID actor,String key,WalletRequests.Redemption request);WalletResponses.Balance claim(UUID actor,String key,WalletRequests.Claim request);WalletResponses.Balance adjust(UUID actor,UUID customer,String key,WalletRequests.Adjustment request);}

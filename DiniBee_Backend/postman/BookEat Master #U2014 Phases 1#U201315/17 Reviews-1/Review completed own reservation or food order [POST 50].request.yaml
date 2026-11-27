@@ -1,0 +1,41 @@
+$kind: http-request
+description: |-
+  Review completed own reservation or food order.
+  Required authority: hasRole('CUSTOMER').
+  See docs/PHASE9_15_API.md. Populate IDs from real responses; reload the affected version before a new write. Dates are examples and must match your test clock.
+  Reuse this saved intent key for an exact retry. Clear intent915_49 before a different business intent. Never auto-retry unknown gateway outcomes with a new key.
+url: "{{baseUrl}}/customer/reviews"
+method: POST
+headers:
+  Idempotency-Key: "{{intent915_49}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reservationId": "{{reservationId}}",
+      "rating": 5,
+      "foodRating": 5,
+      "serviceRating": 5,
+      "ambienceRating": 4,
+      "comment": "Good meal and service"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("intent915_49")) pm.environment.set("intent915_49", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+        const result = pm.response.json();
+        pm.test("Success envelope", () => pm.expect(result.success).to.eql(true));
+        const data = result.data || {};
+        if (data.id) pm.environment.set("reviewId", data.id);
+        if (data.version !== undefined) pm.environment.set("reviewVersion", String(data.version));
+      }
+    language: text/javascript
+order: 1000

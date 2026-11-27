@@ -1,0 +1,2 @@
+$kind: collection
+description: Cumulative backend requests. Run individual documented flows, not every alternative state transition in sequence. Phases 9–15 add dining, payments, finance, wallet/rewards, reviews, support, notifications and reports. Provider secrets stay on the server. See docs/PHASE9_15_API.md and docs/VERIFICATION.md. Full Maven/PostgreSQL acceptance has not run in the authoring environment.

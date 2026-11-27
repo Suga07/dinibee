@@ -1,0 +1,45 @@
+name: bookeat-development
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: bookeat
+      POSTGRES_USER: ${DB_USERNAME:-bookeat}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Generate .env before starting}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d bookeat"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit:v1.20
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+  backend:
+    build: .
+    volumes:
+      - private_documents:/app/private-documents
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      PORT: "8080"
+      DB_URL: jdbc:postgresql://postgres:5432/bookeat
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_SMTP_AUTH: "false"
+      MAIL_STARTTLS: "false"
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+volumes:
+  postgres_data:
+  private_documents:

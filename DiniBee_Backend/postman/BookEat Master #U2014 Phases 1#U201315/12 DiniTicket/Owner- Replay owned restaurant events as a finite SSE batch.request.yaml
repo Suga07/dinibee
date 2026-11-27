@@ -1,0 +1,16 @@
+$kind: http-request
+name: "Owner: Replay owned restaurant events as a finite SSE batch"
+description: |-
+  Replay owned restaurant events as a finite SSE batch
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/dinitickets/stream"
+method: GET
+headers:
+  Accept: text/event-stream
+  Last-Event-ID: "{{eventCursor}}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+order: 17000

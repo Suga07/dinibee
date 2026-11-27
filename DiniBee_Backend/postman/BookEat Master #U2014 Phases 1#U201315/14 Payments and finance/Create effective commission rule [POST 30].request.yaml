@@ -1,0 +1,36 @@
+$kind: http-request
+description: |-
+  Create effective commission rule.
+  Required authority: hasAuthority('COMMISSION_MANAGE').
+  See docs/PHASE9_15_API.md. Populate IDs from real responses; reload the affected version before a new write. Dates are examples and must match your test clock.
+url: "{{baseUrl}}/admin/commission-rules"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "serviceType": "RESTAURANT",
+      "commissionType": "PERCENTAGE",
+      "commissionValue": 5,
+      "effectiveFrom": "{{ruleFrom}}",
+      "effectiveUntil": "{{ruleUntil}}",
+      "active": true
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+        const result = pm.response.json();
+        pm.test("Success envelope", () => pm.expect(result.success).to.eql(true));
+        const data = result.data || {};
+        if (data.id) pm.environment.set("commissionId", data.id);
+        if (data.version !== undefined) pm.environment.set("commissionVersion", String(data.version));
+      }
+    language: text/javascript
+order: 20000

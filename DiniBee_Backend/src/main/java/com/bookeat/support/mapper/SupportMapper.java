@@ -1,0 +1,3 @@
+package com.bookeat.support.mapper;
+import com.bookeat.support.dto.SupportResponses;import com.bookeat.support.entity.*;import org.springframework.stereotype.Component;
+@Component public class SupportMapper {public SupportResponses.Ticket view(SupportTicket t){return new SupportResponses.Ticket(t.getId(),t.getVersion(),t.getTicketNumber(),t.getCreatorType(),t.getCategory(),t.getSubject(),t.getDescription(),t.getPriority(),t.getStatus(),t.getAssignedAdmin(),t.getCreatedAt(),t.getResolvedAt());}public SupportResponses.Message message(SupportMessage m,java.util.UUID creator){return new SupportResponses.Message(m.getId(),!m.getSenderUser().equals(creator),m.getMessage(),m.getAttachmentUrl(),m.getCreatedAt());}}

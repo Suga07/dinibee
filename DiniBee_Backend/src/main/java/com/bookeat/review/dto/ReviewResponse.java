@@ -1,0 +1,19 @@
+package com.bookeat.review.dto;
+import java.util.UUID;
+import java.time.Instant;
+import com.bookeat.review.enums.ReviewStatus;
+public record ReviewResponse(
+    UUID id,
+    long version,
+    UUID restaurantId,
+    UUID reservationId,
+    UUID foodOrderId,
+    String customerName,
+    int rating,
+    Integer foodRating,
+    Integer serviceRating,
+    Integer ambienceRating,
+    String comment,
+    String ownerReply,
+    ReviewStatus status,
+    Instant createdAt){}

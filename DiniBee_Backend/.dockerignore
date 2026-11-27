@@ -1,0 +1,7 @@
+target/
+.git/
+.env
+.env.*
+secrets/
+*.log
+private-documents

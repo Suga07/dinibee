@@ -1,0 +1,4 @@
+components/bookeat/ecosystem/core-pages.tsx
+lib/bookeat/services/restaurant-detail.mjs
+lib/bookeat/services/restaurant-service.ts
+tests/restaurant-detail.test.mjs

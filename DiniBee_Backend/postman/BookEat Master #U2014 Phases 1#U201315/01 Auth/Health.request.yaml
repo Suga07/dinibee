@@ -1,0 +1,14 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/public/health"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", function () { pm.response.to.have.status(200); });
+      const result = pm.response.json();
+      pm.test("Response envelope", function () { pm.expect(result).to.have.property("success"); });
+    language: text/javascript
+order: 1000

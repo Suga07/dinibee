@@ -1,0 +1,47 @@
+$kind: http-request
+description: |-
+  Idempotency-Key required. Dine-in requires an eligible own/joined reservation; DiniTicket preorder requires an eligible own ticket. Use takeaway routes for pickup orders. Client totals/payment states are rejected.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+  Idempotency key is initialized once. Keep it for exact retries; clear it for a new booking/order intent.
+url: "{{baseUrl}}/customer/orders"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{orderKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "restaurantId": "{{restaurantId}}",
+      "orderType": "DINE_IN_PREORDER",
+      "reservationId": "{{reservationId}}",
+      "diniTicketId": null,
+      "items": [
+        {
+          "menuItemId": "{{menuItemId}}",
+          "variantId": null,
+          "addonIds": [],
+          "quantity": 1,
+          "notes": null
+        }
+      ],
+      "specialInstructions": null
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("orderKey")) pm.environment.set("orderKey", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.id){pm.environment.set("orderId",d.id);pm.environment.set("orderVersion",d.version);}
+      }
+    language: text/javascript
+order: 1000

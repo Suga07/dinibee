@@ -1,0 +1,8 @@
+package com.bookeat.payment.service;
+import com.bookeat.dining.service.DiningPaymentPort;import com.bookeat.order.service.OrderLifecycleGuard;import com.bookeat.order.repository.FoodOrderRepository;import com.bookeat.order.entity.FoodOrder;import com.bookeat.order.enums.FoodOrderStatus;import com.bookeat.exception.*;import lombok.RequiredArgsConstructor;import org.springframework.stereotype.Component;import org.springframework.transaction.annotation.*;import java.util.*;
+@Component @RequiredArgsConstructor @Transactional(propagation=Propagation.MANDATORY)
+public class PaymentBusinessGuard implements DiningPaymentPort,OrderLifecycleGuard {
+ private final PaymentTransactions payments;private final FoodOrderRepository orders;private final org.springframework.jdbc.core.JdbcTemplate jdbc;
+ public boolean settled(UUID reservation,UUID ticket){var food=reservation!=null?orders.findByReservationId(reservation):orders.findByDiniTicketId(ticket);return food.stream().filter(o->o.getStatus()!=FoodOrderStatus.CANCELLED&&o.getStatus()!=FoodOrderStatus.REJECTED).allMatch(o->payments.paid(o.getId(),o.getTotal()));}
+ public void beforeTransition(FoodOrder o,FoodOrderStatus target){if(target==FoodOrderStatus.COMPLETED&&com.bookeat.order.service.OrderService.isTakeaway(o)&&!payments.paid(o.getId(),o.getTotal()))throw new ApiException(ErrorCode.PAYMENT_REQUIRED);if((target==FoodOrderStatus.CANCELLED||target==FoodOrderStatus.REJECTED)&&Boolean.TRUE.equals(jdbc.queryForObject("select exists(select 1 from payment_lines l join payments p on p.id=l.payment_id where l.food_order_id=? and p.status in ('CREATED','PENDING','SUCCESS','PARTIALLY_REFUNDED'))",Boolean.class,o.getId())))throw new ApiException(ErrorCode.PAYMENT_IN_PROGRESS);}
+}

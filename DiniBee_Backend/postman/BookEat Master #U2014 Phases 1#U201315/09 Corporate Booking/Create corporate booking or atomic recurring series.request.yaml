@@ -1,0 +1,55 @@
+$kind: http-request
+description: |-
+  Idempotency-Key required. Supply account OR owned corporateAccountId. Bounded recurrence: NONE/DAILY/WEEKLY/MONTHLY, occurrences and interval 1–12. Any slot conflict rolls back the complete series. Budget is per occurrence; invoiceRequired records intent only.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+  Idempotency key is initialized once. Keep it for exact retries; clear it for a new booking/order intent.
+url: "{{baseUrl}}/customer/corporate-bookings"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{corporateKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "reservation": {
+        "restaurantId": "{{restaurantId}}",
+        "tableId": "{{tableId}}",
+        "startsAt": "{{startsAt}}",
+        "guestCount": 2,
+        "specialRequest": null
+      },
+      "corporateAccountId": null,
+      "account": {
+        "companyName": "Example Company",
+        "gstNumber": null,
+        "billingAddress": "Example billing address",
+        "contactPersonName": "Organizer",
+        "contactEmail": "{{customerEmail}}",
+        "contactPhone": "+919999999999"
+      },
+      "budgetLimit": 5000.0,
+      "billingType": "COMPANY",
+      "recurrenceType": "NONE",
+      "occurrences": 1,
+      "interval": 1,
+      "invoiceRequired": true
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("corporateKey")) pm.environment.set("corporateKey", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      const v=Array.isArray(d)?d[0]:d;if(v && v.id){pm.environment.set("corporateBookingId",v.id);pm.environment.set("corporateVersion",v.version);pm.environment.set("seriesId",v.seriesId);pm.environment.set("corporateAccountId",v.account.id);pm.environment.set("reservationId",v.reservation.id);pm.environment.set("reservationVersion",v.reservation.version);}
+      }
+    language: text/javascript
+order: 1000

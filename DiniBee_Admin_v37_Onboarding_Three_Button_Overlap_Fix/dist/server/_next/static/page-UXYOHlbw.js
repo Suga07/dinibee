@@ -1,0 +1,1 @@
+import{t as e}from"./framework~index~page~layout~page~page~page~app-page-cache-render~app-page-cache~app-route-h~fjnrume7-ClzH4cE7.js";import{t}from"./admin-panel-BfoZJSuR.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as default};

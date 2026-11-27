@@ -1,0 +1,25 @@
+$kind: http-request
+description: Copy emailOtp from Mailpit or your real email; challenge ID is saved automatically.
+url: "{{baseUrl}}/auth/verify-email-otp"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "challengeId": "{{emailChallengeId}}",
+      "code": "{{emailOtp}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", function () { pm.response.to.have.status(200); });
+      const result = pm.response.json();
+      pm.test("Response envelope", function () { pm.expect(result).to.have.property("success"); });
+    language: text/javascript
+order: 10000

@@ -1,0 +1,38 @@
+$kind: http-request
+description: |-
+  Nested reservation.version is required. Does not silently change other recurring occurrences.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/customer/corporate-bookings/{{corporateBookingId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reservation": {
+        "version": {{reservationVersion}},
+        "tableId": "{{tableId}}",
+        "startsAt": "{{startsAt}}",
+        "guestCount": 2,
+        "specialRequest": null
+      },
+      "budgetLimit": 5000.0,
+      "billingType": "COMPANY",
+      "invoiceRequired": true
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      const v=Array.isArray(d)?d[0]:d;if(v && v.id){pm.environment.set("corporateBookingId",v.id);pm.environment.set("corporateVersion",v.version);pm.environment.set("seriesId",v.seriesId);pm.environment.set("corporateAccountId",v.account.id);pm.environment.set("reservationId",v.reservation.id);pm.environment.set("reservationVersion",v.reservation.version);}
+      }
+    language: text/javascript
+order: 6000

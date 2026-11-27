@@ -1,0 +1,1 @@
+import{t as e}from"./rsc-Di0p-H6R.js";var t=e(()=>{throw Error(`Unexpectedly client reference export 'PrivacyPolicyView' is called on server`)},`1ab0d6201e77`,`PrivacyPolicyView`);export{t};

@@ -1,0 +1,42 @@
+$kind: http-request
+description: "OWNER permission and owned restaurant required. Writes use the latest restaurantVersion; scripts save the next version. Archive requests are optional cleanup: run after completing the flow."
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/tables"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "restaurantVersion": {{restaurantVersion}},
+      "tableNumber": "T-01",
+      "tableName": "Window table",
+      "capacity": 4,
+      "minimumGuests": 1,
+      "maximumGuests": 4,
+      "floor": 0,
+      "section": "Main dining",
+      "shape": "RECTANGLE",
+      "xPosition": 10,
+      "yPosition": 20,
+      "width": 100,
+      "height": 80,
+      "rotation": 0,
+      "active": true
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 201", () => pm.response.to.have.status(201));
+      const result = pm.response.json();
+      if (result.success && result.data) {
+        const d = result.data;
+        if (d.restaurantVersion !== undefined) pm.environment.set("restaurantVersion", String(d.restaurantVersion));
+        if (d.resource && d.resource.id) pm.environment.set("tableId", d.resource.id);
+      }
+    language: text/javascript
+order: 1000

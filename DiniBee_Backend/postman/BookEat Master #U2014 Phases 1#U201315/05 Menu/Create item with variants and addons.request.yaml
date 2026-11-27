@@ -1,0 +1,61 @@
+$kind: http-request
+description: "OWNER permission and owned restaurant required. Writes use the latest restaurantVersion; scripts save the next version. Archive requests are optional cleanup: run after completing the flow."
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/menu/items"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "restaurantVersion": {{restaurantVersion}},
+      "categoryId": "{{categoryId}}",
+      "name": "Vegetable curry",
+      "description": "Seasonal vegetables",
+      "basePrice": 180,
+      "discountPrice": 160,
+      "foodType": "VEG",
+      "spiceLevel": "MILD",
+      "imageUrl": null,
+      "available": true,
+      "preOrderAvailable": true,
+      "takeawayAvailable": true,
+      "diniTicketPreOrderAvailable": false,
+      "preparationTimeMinutes": 20,
+      "featured": true,
+      "displayOrder": 0,
+      "variants": [
+        {
+          "id": null,
+          "name": "Family",
+          "price": 300,
+          "active": true
+        }
+      ],
+      "addons": [
+        {
+          "id": null,
+          "name": "Extra rice",
+          "price": 40,
+          "active": true
+        }
+      ]
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 201", () => pm.response.to.have.status(201));
+      const result = pm.response.json();
+      if (result.success && result.data) {
+        const d = result.data;
+        if (d.restaurantVersion !== undefined) pm.environment.set("restaurantVersion", String(d.restaurantVersion));
+        if (d.resource && d.resource.id) pm.environment.set("menuItemId", d.resource.id);
+        if (d.resource && d.resource.variants && d.resource.variants.length) pm.environment.set("variantId", d.resource.variants[0].id);
+        if (d.resource && d.resource.addons && d.resource.addons.length) pm.environment.set("addonId", d.resource.addons[0].id);
+      }
+    language: text/javascript
+order: 5000

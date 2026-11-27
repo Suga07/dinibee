@@ -1,0 +1,26 @@
+package com.bookeat.report.service;
+import java.util.*;import java.io.*;import java.util.zip.*;import java.nio.charset.StandardCharsets;
+/** Bounded, dependency-free exports; all Excel values are inline strings, never formulas. */
+public final class ReportExporter {
+ private ReportExporter(){}
+ public static String cell(Object value){String s=value==null?"":String.valueOf(value);String stripped=s.stripLeading();if(!stripped.isEmpty()&&"=+-@\t\r\n".indexOf(stripped.charAt(0))>=0)s="'"+s;return "\""+s.replace("\"","\"\"")+"\"";}
+ public static byte[] csv(List<Map<String,Object>> rows){if(rows.isEmpty())return new byte[0];var out=new StringBuilder();var keys=new ArrayList<>(rows.get(0).keySet());out.append(String.join(",",keys.stream().map(ReportExporter::cell).toList())).append("\r\n");for(var row:rows)out.append(String.join(",",keys.stream().map(k->cell(row.get(k))).toList())).append("\r\n");return out.toString().getBytes(StandardCharsets.UTF_8);}
+ private static String xml(Object value){String s=value==null?"":String.valueOf(value);var clean=new StringBuilder();s.codePoints().filter(c->c==9||c==10||c==13||c>=32&&c<=0xd7ff||c>=0xe000&&c<=0xfffd||c>=0x10000&&c<=0x10ffff).forEach(clean::appendCodePoint);return clean.toString().replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;");}
+ public static byte[] xlsx(List<Map<String,Object>> rows){try{var out=new ByteArrayOutputStream();try(var zip=new ZipOutputStream(out,StandardCharsets.UTF_8)){put(zip,"[Content_Types].xml","<?xml version=\"1.0\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/></Types>");put(zip,"_rels/.rels","<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>");put(zip,"xl/workbook.xml","<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Report\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");put(zip,"xl/_rels/workbook.xml.rels","<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>");var sheet=new StringBuilder("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>");if(!rows.isEmpty()){var keys=new ArrayList<>(rows.get(0).keySet());row(sheet,new ArrayList<Object>(keys));for(var r:rows)row(sheet,keys.stream().map(r::get).toList());}sheet.append("</sheetData></worksheet>");put(zip,"xl/worksheets/sheet1.xml",sheet.toString());}return out.toByteArray();}catch(IOException e){throw new IllegalStateException("Export creation failed",e);}}
+ public static byte[] pdf(List<Map<String,Object>> rows,String title){try{
+  var out=new ByteArrayOutputStream();
+  var document=new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate(),24,24,30,30);
+  com.lowagie.text.pdf.PdfWriter.getInstance(document,out);document.open();
+  var h=new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA,16,com.lowagie.text.Font.BOLD);
+  document.add(new com.lowagie.text.Paragraph("BookEat - "+title.replace('_',' ')+" Report",h));
+  document.add(new com.lowagie.text.Paragraph("Generated: "+java.time.Instant.now().toString()));
+  document.add(new com.lowagie.text.Paragraph(" "));
+  if(rows.isEmpty()){document.add(new com.lowagie.text.Paragraph("No records found for the selected filters."));}
+  else{var keys=new ArrayList<>(rows.get(0).keySet());var table=new com.lowagie.text.pdf.PdfPTable(keys.size());table.setWidthPercentage(100);
+    for(var k:keys){var c=new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(k,new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA,8,com.lowagie.text.Font.BOLD)));table.addCell(c);}
+    for(var r:rows)for(var k:keys)table.addCell(new com.lowagie.text.Phrase(r.get(k)==null?"":String.valueOf(r.get(k)),new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA,7)));document.add(table);}
+  document.close();return out.toByteArray();
+ }catch(Exception e){throw new IllegalStateException("PDF export creation failed",e);}}
+ private static void row(StringBuilder s,List<?> values){s.append("<row>");for(Object value:values)s.append("<c t=\"inlineStr\"><is><t xml:space=\"preserve\">").append(xml(value)).append("</t></is></c>");s.append("</row>");}
+ private static void put(ZipOutputStream out,String name,String text)throws IOException{out.putNextEntry(new ZipEntry(name));out.write(text.getBytes(StandardCharsets.UTF_8));out.closeEntry();}
+}

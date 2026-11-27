@@ -1,0 +1,12 @@
+package com.bookeat.membership.controller;
+import com.bookeat.common.response.ApiResponse;import com.bookeat.membership.dto.MembershipDtos.*;import com.bookeat.membership.service.MembershipService;import com.bookeat.security.AppPrincipal;import jakarta.validation.Valid;import lombok.RequiredArgsConstructor;import org.springframework.web.bind.annotation.*;import org.springframework.security.access.prepost.PreAuthorize;import org.springframework.security.core.annotation.AuthenticationPrincipal;import java.util.*;
+@RestController @RequiredArgsConstructor public class MembershipController {
+ private final MembershipService service;
+ @GetMapping("/api/v1/membership-plans") public ApiResponse<List<Plan>> active(){return ApiResponse.ok("Membership plans loaded",service.active());}
+ @GetMapping("/api/v1/admin/membership-plans") @PreAuthorize("hasAuthority('PLATFORM_SETTINGS_MANAGE') or hasAnyRole('SUPER_ADMIN','ADMIN')") public ApiResponse<List<Plan>> all(){return ApiResponse.ok("Membership plans loaded",service.all());}
+ @PostMapping("/api/v1/admin/membership-plans") @PreAuthorize("hasAuthority('PLATFORM_SETTINGS_MANAGE') or hasAnyRole('SUPER_ADMIN','ADMIN')") public ApiResponse<Plan> create(@Valid @RequestBody SavePlan q){return ApiResponse.ok("Membership plan created",service.create(q));}
+ @PutMapping("/api/v1/admin/membership-plans/{id}") @PreAuthorize("hasAuthority('PLATFORM_SETTINGS_MANAGE') or hasAnyRole('SUPER_ADMIN','ADMIN')") public ApiResponse<Plan> update(@PathVariable UUID id,@Valid @RequestBody SavePlan q){return ApiResponse.ok("Membership plan updated",service.update(id,q));}
+ @PostMapping("/api/v1/customer/membership-subscriptions") @PreAuthorize("hasRole('CUSTOMER')") public ApiResponse<Checkout> subscribe(@AuthenticationPrincipal AppPrincipal p,@Valid @RequestBody Subscribe q){return ApiResponse.ok("Payment required",service.startCheckout(p.userId(),q.planId()));}
+ @PostMapping("/api/v1/customer/membership-subscriptions/checkout/{checkoutId}/verify") @PreAuthorize("hasRole('CUSTOMER')") public ApiResponse<Subscription> verify(@AuthenticationPrincipal AppPrincipal p,@PathVariable UUID checkoutId,@Valid @RequestBody VerifyPayment q){return ApiResponse.ok("Membership payment verified and activated",service.verifyAndActivate(p.userId(),checkoutId,q));}
+ @GetMapping("/api/v1/customer/membership-subscriptions/current") @PreAuthorize("hasRole('CUSTOMER')") public ApiResponse<Subscription> current(@AuthenticationPrincipal AppPrincipal p){return ApiResponse.ok("Current membership loaded",service.current(p.userId()));}
+}

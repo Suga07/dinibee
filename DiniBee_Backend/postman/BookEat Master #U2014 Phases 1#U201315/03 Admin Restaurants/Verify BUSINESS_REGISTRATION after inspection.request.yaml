@@ -1,0 +1,30 @@
+$kind: http-request
+description: Use current restaurantVersion. Success responses update the saved version. Run this request only in its documented workflow state.
+url: "{{baseUrl}}/admin/restaurants/{{restaurantId}}/documents/{{documentIdBUSINESS_REGISTRATION}}/verification"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "version": {{restaurantVersion}},
+      "verified": true,
+      "reason": null
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", () => pm.response.to.have.status(200));
+      const result = pm.response.json();
+      if (result.success && result.data && result.data.id && result.data.version !== undefined) {
+        pm.environment.set("restaurantId", result.data.id);
+        pm.environment.set("restaurantVersion", String(result.data.version));
+        if (result.data.documents) result.data.documents.forEach(d => pm.environment.set("documentId" + d.documentType, d.id));
+      }
+    language: text/javascript
+order: 8000

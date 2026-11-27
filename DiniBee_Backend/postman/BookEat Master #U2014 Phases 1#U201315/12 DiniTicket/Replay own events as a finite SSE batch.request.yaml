@@ -1,0 +1,15 @@
+$kind: http-request
+description: |-
+  Bearer-authenticated replay with Last-Event-ID; up to 100 events, then reconnect after 3 seconds. Each reconnect revalidates session and permissions. Use JSON events endpoint for polling clients.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/customer/dinitickets/stream"
+method: GET
+headers:
+  Accept: text/event-stream
+  Last-Event-ID: "{{eventCursor}}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+order: 16000

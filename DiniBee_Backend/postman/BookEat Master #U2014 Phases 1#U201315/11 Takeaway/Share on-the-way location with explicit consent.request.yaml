@@ -1,0 +1,30 @@
+$kind: http-request
+description: |-
+  consent=true required. Latest point only; straight-line distance with a disclosed 30 km/h estimate, no routing or traffic provider. Customer must grant device permission before sending coordinates.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/customer/takeaway/orders/{{takeawayId}}/location"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "consent": true,
+      "latitude": 12.9716,
+      "longitude": 77.5946
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      }
+    language: text/javascript
+order: 5000

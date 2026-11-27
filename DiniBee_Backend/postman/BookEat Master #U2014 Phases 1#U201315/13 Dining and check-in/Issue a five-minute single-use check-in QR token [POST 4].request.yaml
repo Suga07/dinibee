@@ -1,0 +1,24 @@
+$kind: http-request
+description: |-
+  Issue a five-minute single-use check-in QR token.
+  Required authority: hasRole('OWNER') and hasAuthority('DINING_MANAGE').
+  See docs/PHASE9_15_API.md. Populate IDs from real responses; reload the affected version before a new write. Dates are examples and must match your test clock.
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/reservations/{{reservationId}}/check-in-token"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+        const result = pm.response.json();
+        pm.test("Success envelope", () => pm.expect(result.success).to.eql(true));
+        const data = result.data || {};
+        if (data.id) pm.environment.set("reservationId", data.id);
+        if (data.version !== undefined) pm.environment.set("reservationVersion", String(data.version));
+        if (data.token) pm.environment.set("checkinToken", data.token);
+      }
+    language: text/javascript
+order: 4000

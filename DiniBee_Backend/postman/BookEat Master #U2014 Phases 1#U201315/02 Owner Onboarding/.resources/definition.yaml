@@ -1,0 +1,3 @@
+$kind: collection
+description: Follow docs/PHASE3_API.md; deletion and administrative rejection are alternative flows.
+order: 2000

@@ -1,0 +1,17 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/auth/send-email-otp"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 202", function () { pm.response.to.have.status(202); });
+      const result = pm.response.json();
+      pm.test("Response envelope", function () { pm.expect(result).to.have.property("success"); });
+      if (result.success && result.data) pm.environment.set("emailChallengeId", result.data.challengeId);
+    language: text/javascript
+order: 9000

@@ -1,0 +1,24 @@
+$kind: http-request
+description: Public, read-only, no hold. Set availabilityDate in restaurant timezone within advance window; defaults to tomorrow in UTC for convenience. Restaurant must be approved/active, RESTAURANT service and reservations enabled. Use time to get availableTables; omit time to list availableTimeSlots. Repeated DST times require URL-encoded offset, e.g. &offset=%2B05%3A30.
+url: "{{baseUrl}}/restaurants/{{restaurantId}}/availability?date={{availabilityDate}}&guests={{availabilityGuests}}"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (!pm.environment.get("availabilityDate")) {
+        const tomorrow = new Date(); tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        pm.environment.set("availabilityDate", tomorrow.toISOString().slice(0, 10));
+      }
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", () => pm.response.to.have.status(200));
+      const result = pm.response.json();
+      if (result.success && result.data) {
+        const d = result.data;
+        if (d.restaurantVersion !== undefined) pm.environment.set("restaurantVersion", String(d.restaurantVersion));
+      }
+    language: text/javascript
+order: 3000

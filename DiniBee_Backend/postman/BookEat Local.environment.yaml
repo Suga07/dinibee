@@ -1,0 +1,240 @@
+name: BookEat Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8080/api/v1'
+  - key: customerEmail
+    value: customer@example.test
+  - key: ownerEmail
+    value: owner@example.test
+  - key: adminEmail
+    value: ''
+  - key: password
+    value: Example-passphrase-71
+  - key: newPassword
+    value: New-example-passphrase-92
+  - key: adminPassword
+    value: ''
+  - key: customerToken
+    value: ''
+  - key: ownerToken
+    value: ''
+  - key: adminToken
+    value: ''
+  - key: customerRefreshToken
+    value: ''
+  - key: ownerRefreshToken
+    value: ''
+  - key: adminRefreshToken
+    value: ''
+  - key: customerUserId
+    value: ''
+  - key: ownerUserId
+    value: ''
+  - key: adminUserId
+    value: ''
+  - key: emailChallengeId
+    value: ''
+  - key: emailOtp
+    value: ''
+  - key: resetChallengeId
+    value: ''
+  - key: resetToken
+    value: ''
+  - key: restaurantId
+    value: ''
+  - key: reservationId
+    value: ''
+  - key: restaurantVersion
+    value: ''
+  - key: documentIdFSSAI
+    value: ''
+  - key: documentIdBUSINESS_REGISTRATION
+    value: ''
+  - key: documentIdOWNER_ID
+    value: ''
+  - key: documentIdPAN
+    value: ''
+  - key: tableId
+    value: ''
+  - key: menuItemId
+    value: ''
+  - key: groupBookingId
+    value: ''
+  - key: corporateBookingId
+    value: ''
+  - key: orderId
+    value: ''
+  - key: takeawayId
+    value: ''
+  - key: diniTicketId
+    value: ''
+  - key: paymentId
+    value: ''
+  - key: categoryId
+    value: ''
+  - key: variantId
+    value: ''
+  - key: addonId
+    value: ''
+  - key: availabilityDate
+    value: ''
+  - key: availabilityTime
+    value: '12:00'
+  - key: availabilityGuests
+    value: '2'
+  - key: corporateInviteCode
+    value: ''
+  - key: corporateKey
+    value: ''
+  - key: corporateVersion
+    value: ''
+  - key: customerId
+    value: ''
+  - key: eventCursor
+    value: '0'
+  - key: groupKey
+    value: ''
+  - key: groupVersion
+    value: ''
+  - key: guestEmail
+    value: guest@example.test
+  - key: inviteCode
+    value: ''
+  - key: memberId
+    value: ''
+  - key: onTheWayKey
+    value: ''
+  - key: orderKey
+    value: ''
+  - key: orderVersion
+    value: ''
+  - key: pickupCode
+    value: ''
+  - key: pickupTime
+    value: ''
+  - key: reservationKey
+    value: ''
+  - key: reservationVersion
+    value: ''
+  - key: startsAt
+    value: ''
+  - key: takeawayKey
+    value: ''
+  - key: takeawayVersion
+    value: ''
+  - key: ticketKey
+    value: ''
+  - key: ticketOrderKey
+    value: ''
+  - key: ticketVersion
+    value: ''
+  - key: walkInKey
+    value: ''
+  - key: resourceVersion
+    value: '0'
+  - key: diningSessionId
+    value: ''
+  - key: diningVersion
+    value: '0'
+  - key: checkinToken
+    value: ''
+  - key: paymentVersion
+    value: '0'
+  - key: gatewayPaymentId
+    value: ''
+  - key: paymentSignature
+    value: ''
+  - key: gatewayRefundId
+    value: ''
+  - key: refundId
+    value: ''
+  - key: refundVersion
+    value: '0'
+  - key: commissionId
+    value: ''
+  - key: commissionVersion
+    value: '0'
+  - key: settlementId
+    value: ''
+  - key: settlementVersion
+    value: '0'
+  - key: walletCustomerId
+    value: ''
+  - key: rewardRuleId
+    value: ''
+  - key: rewardRuleVersion
+    value: '0'
+  - key: reviewId
+    value: ''
+  - key: reviewVersion
+    value: '0'
+  - key: supportTicketId
+    value: ''
+  - key: supportVersion
+    value: '0'
+  - key: supportAdminId
+    value: ''
+  - key: notificationId
+    value: ''
+  - key: adminUserVersion
+    value: '0'
+  - key: newAdminEmail
+    value: new-admin@example.test
+  - key: newAdminPassword
+    value: ''
+  - key: promotionId
+    value: ''
+  - key: promotionVersion
+    value: '0'
+  - key: reportType
+    value: RESERVATIONS
+  - key: reportFormat
+    value: csv
+  - key: reportFrom
+    value: '2026-09-01'
+  - key: reportUntil
+    value: '2026-09-30'
+  - key: ruleFrom
+    value: '2026-09-01T00:00:00Z'
+  - key: ruleUntil
+    value: '2026-10-01T00:00:00Z'
+  - key: settlementFrom
+    value: '2026-09-01T00:00:00Z'
+  - key: settlementUntil
+    value: '2026-09-13T00:00:00Z'
+  - key: cashRefundReceipt
+    value: ''
+  - key: webhookEventId
+    value: ''
+  - key: webhookSignature
+    value: ''
+  - key: intent915_10
+    value: ''
+  - key: intent915_17
+    value: ''
+  - key: intent915_31
+    value: ''
+  - key: intent915_42
+    value: ''
+  - key: intent915_43
+    value: ''
+  - key: intent915_46
+    value: ''
+  - key: intent915_49
+    value: ''
+  - key: intent915_57
+    value: ''
+  - key: intent915_61
+    value: ''
+  - key: intent915_63
+    value: ''
+  - key: intent915_67
+    value: ''
+  - key: intent915_72
+    value: ''
+  - key: gatewaySessionId
+    value: ''
+  - key: zohoAccountId
+    value: ''
+  - key: zohoApiKey
+    value: ''

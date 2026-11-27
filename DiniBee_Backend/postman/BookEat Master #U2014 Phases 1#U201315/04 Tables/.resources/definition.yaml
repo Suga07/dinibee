@@ -1,0 +1,3 @@
+$kind: collection
+description: Phase 4. Get the restaurant detail first to set restaurantVersion. Tables can be prepared in drafts and edited after approval. The status endpoint does not cancel allocations.
+order: 4000

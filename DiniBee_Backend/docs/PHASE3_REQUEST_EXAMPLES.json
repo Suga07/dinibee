@@ -1,0 +1,190 @@
+{
+  "create": {
+    "restaurantName": "Chennai Kitchen",
+    "restaurantType": "RESTAURANT",
+    "email": "restaurant@example.test",
+    "phone": "+919876543210"
+  },
+  "details": {
+    "version": 0,
+    "restaurantName": "Chennai Kitchen",
+    "restaurantType": "RESTAURANT",
+    "description": "Family dining with freshly prepared local food.",
+    "email": "restaurant@example.test",
+    "phone": "+919876543210",
+    "alternatePhone": null,
+    "logoUrl": null,
+    "coverImageUrl": null
+  },
+  "location": {
+    "version": 0,
+    "addressLine1": "10 Example Road",
+    "addressLine2": null,
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "postalCode": "600001",
+    "country": "IN",
+    "latitude": 13.0827,
+    "longitude": 80.2707,
+    "timezone": "Asia/Kolkata"
+  },
+  "business-info": {
+    "version": 0,
+    "businessRegistrationNumber": "REG-1234",
+    "gstNumber": null,
+    "fssaiNumber": "12345678901234"
+  },
+  "operating-hours": {
+    "version": 0,
+    "hours": [
+      {
+        "dayOfWeek": "MONDAY",
+        "openingTime": "09:00:00",
+        "closingTime": "22:00:00",
+        "closed": false,
+        "closesNextDay": false
+      },
+      {
+        "dayOfWeek": "TUESDAY",
+        "openingTime": "09:00:00",
+        "closingTime": "22:00:00",
+        "closed": false,
+        "closesNextDay": false
+      },
+      {
+        "dayOfWeek": "WEDNESDAY",
+        "openingTime": "09:00:00",
+        "closingTime": "22:00:00",
+        "closed": false,
+        "closesNextDay": false
+      },
+      {
+        "dayOfWeek": "THURSDAY",
+        "openingTime": "09:00:00",
+        "closingTime": "22:00:00",
+        "closed": false,
+        "closesNextDay": false
+      },
+      {
+        "dayOfWeek": "FRIDAY",
+        "openingTime": "09:00:00",
+        "closingTime": "22:00:00",
+        "closed": false,
+        "closesNextDay": false
+      },
+      {
+        "dayOfWeek": "SATURDAY",
+        "openingTime": "09:00:00",
+        "closingTime": "22:00:00",
+        "closed": false,
+        "closesNextDay": false
+      },
+      {
+        "dayOfWeek": "SUNDAY",
+        "openingTime": "09:00:00",
+        "closingTime": "22:00:00",
+        "closed": false,
+        "closesNextDay": false
+      }
+    ]
+  },
+  "special-schedules": {
+    "version": 0,
+    "schedules": [
+      {
+        "date": "2027-01-01",
+        "closed": true,
+        "openingTime": null,
+        "closingTime": null,
+        "closesNextDay": false,
+        "reason": "Holiday"
+      }
+    ]
+  },
+  "services": {
+    "version": 0,
+    "services": [
+      "RESTAURANT",
+      "TAKEAWAY",
+      "DINITICKET"
+    ]
+  },
+  "table-setup": {
+    "version": 0,
+    "plannedTableCount": 10,
+    "plannedSeatCount": 40,
+    "sectionDescription": "Main dining room"
+  },
+  "reservation-settings": {
+    "version": 0,
+    "reservationEnabled": true,
+    "minimumGuests": 1,
+    "maximumGuestsPerBooking": 8,
+    "slotDurationMinutes": 30,
+    "reservationDurationMinutes": 90,
+    "advanceBookingDays": 30,
+    "minimumAdvanceMinutes": 30,
+    "gracePeriodMinutes": 15,
+    "cancellationAllowed": true,
+    "cancellationBeforeMinutes": 60,
+    "autoConfirm": false,
+    "specialRequestAllowed": true,
+    "preOrderAllowed": false,
+    "gpsCheckInEnabled": true,
+    "qrCheckInEnabled": true,
+    "gpsCheckInRadiusMeters": 100
+  },
+  "takeaway-settings": {
+    "version": 0,
+    "enabled": true,
+    "regularTakeawayEnabled": true,
+    "onTheWayEnabled": false,
+    "minimumOrderAmount": 0,
+    "averagePreparationMinutes": 20,
+    "maximumAdvanceOrderMinutes": 120,
+    "acceptCash": true,
+    "acceptOnlinePayment": false
+  },
+  "diniticket-settings": {
+    "version": 0,
+    "enabled": true,
+    "maximumQueueSize": 40,
+    "defaultEstimatedMinutesPerParty": 5,
+    "allowPreOrder": false,
+    "allowRemoteJoin": true,
+    "ticketExpiryMinutes": 60,
+    "autoExpireTickets": true
+  },
+  "menu-setup": {
+    "version": 0,
+    "mode": "CREATE_IN_MENU_MODULE",
+    "externalMenuUrl": null,
+    "notes": "Create menu items in Phase 4",
+    "acknowledged": true
+  },
+  "settlement-profile": {
+    "version": 0,
+    "accountHolderName": "Example Owner",
+    "bankName": "Example Bank",
+    "accountNumber": "123456789012",
+    "ifscCode": "SBIN0001234",
+    "upiId": null,
+    "taxName": "Example Owner",
+    "gstNumber": null
+  },
+  "policies": {
+    "version": 0,
+    "cancellationPolicy": "Cancel before the configured deadline.",
+    "refundPolicy": "Refund eligibility is reviewed by the restaurant.",
+    "childPolicy": "Children welcome.",
+    "petPolicy": "Pets not allowed.",
+    "dressCode": "Casual.",
+    "additionalPolicy": null
+  },
+  "team-access": {
+    "version": 0,
+    "mode": "OWNER_ONLY",
+    "acknowledged": true,
+    "members": []
+  }
+}

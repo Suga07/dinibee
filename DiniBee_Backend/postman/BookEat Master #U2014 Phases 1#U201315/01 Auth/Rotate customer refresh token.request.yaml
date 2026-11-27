@@ -1,0 +1,27 @@
+$kind: http-request
+description: Does not send a bearer header. Saves both replacement tokens. Do not replay an old refresh token.
+url: "{{baseUrl}}/auth/refresh-token"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refreshToken": "{{customerRefreshToken}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", function () { pm.response.to.have.status(200); });
+      const result = pm.response.json();
+      pm.test("Response envelope", function () { pm.expect(result).to.have.property("success"); });
+      if (result.success && result.data) {
+        pm.environment.set("customerToken", result.data.accessToken);
+        pm.environment.set("customerRefreshToken", result.data.refreshToken);
+        pm.environment.set("customerUserId", result.data.user.id);
+      }
+    language: text/javascript
+order: 8000

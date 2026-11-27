@@ -1,0 +1,20 @@
+$kind: http-request
+description: Fetch the stored session, or provide its known numeric Zoho ID when local attachment is missing. Verify server-written metadata, amount and currency; never dispatch a second session. Requires SETTLEMENT_MANAGE. See docs/ZOHO_PAYMENTS.md.
+url: "{{baseUrl}}/admin/payments/{{paymentId}}/reconcile?gatewaySessionId={{gatewaySessionId}}"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+        const result = pm.response.json();
+        pm.test("Success envelope", () => pm.expect(result.success).to.eql(true));
+        const data = result.data || {};
+        if (data.id) pm.environment.set("paymentId", data.id);
+        if (data.version !== undefined) pm.environment.set("paymentVersion", String(data.version));
+      }
+    language: text/javascript
+order: 12000

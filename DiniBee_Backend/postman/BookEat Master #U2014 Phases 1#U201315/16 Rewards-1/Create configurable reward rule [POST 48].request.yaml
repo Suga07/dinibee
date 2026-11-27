@@ -1,0 +1,37 @@
+$kind: http-request
+description: |-
+  Create configurable reward rule.
+  Required authority: hasAuthority('REWARD_MANAGE').
+  See docs/PHASE9_15_API.md. Populate IDs from real responses; reload the affected version before a new write. Dates are examples and must match your test clock.
+url: "{{baseUrl}}/admin/reward-rules"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ruleType": "SPEND",
+      "minimumSpend": 100,
+      "points": 10,
+      "conversionValue": 0,
+      "active": true,
+      "effectiveFrom": "{{ruleFrom}}",
+      "effectiveUntil": "{{ruleUntil}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+        const result = pm.response.json();
+        pm.test("Success envelope", () => pm.expect(result.success).to.eql(true));
+        const data = result.data || {};
+        if (data.id) pm.environment.set("rewardRuleId", data.id);
+        if (data.version !== undefined) pm.environment.set("rewardRuleVersion", String(data.version));
+      }
+    language: text/javascript
+order: 7000

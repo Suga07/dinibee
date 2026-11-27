@@ -1,0 +1,344 @@
+--- /dev/null
++++ b/scripts/check_onboarding_workflow.py
+@@ -0,0 +1,12 @@
++#!/usr/bin/env python3
++"""Run actual dependency-free workflow, time and encryption checks with Java 17."""
++from pathlib import Path
++import subprocess, tempfile
++root = Path(__file__).resolve().parents[1]
++paths = list((root / 'src/main/java/com/bookeat/restaurant/enums').glob('*.java'))
++paths += [root / 'src/main/java/com/bookeat/restaurant' / p for p in [
++    'service/WorkflowRules.java', 'security/SettlementCipher.java', 'storage/DocumentContentRules.java']]
++paths += [root / 'scripts/qa/OnboardingWorkflowChecks.java']
++with tempfile.TemporaryDirectory() as dest:
++    subprocess.run(['java', 'com.sun.tools.javac.Main', '--release', '17', '-d', dest, *map(str, paths)], check=True)
++    subprocess.run(['java', '-cp', dest, 'OnboardingWorkflowChecks'], check=True)
+--- /dev/null
++++ b/scripts/qa/OnboardingWorkflowChecks.java
+@@ -0,0 +1,39 @@
++import com.bookeat.restaurant.enums.*;
++import com.bookeat.restaurant.service.WorkflowRules;
++import com.bookeat.restaurant.security.SettlementCipher;
++import com.bookeat.restaurant.storage.DocumentContentRules;
++import java.util.*;
++import java.time.*;
++public class OnboardingWorkflowChecks {
++ static int count;
++ static void check(boolean b){count++;if(!b)throw new AssertionError("Assertion "+count);}
++ static void rejects(Runnable r){boolean rejected=false;try{r.run();}catch(RuntimeException ex){rejected=true;}check(rejected);}
++ public static void main(String[] args) {
++  var expected=new EnumMap<ReviewAction,Set<ApprovalStatus>>(ReviewAction.class);
++  expected.put(ReviewAction.SUBMIT,Set.of(ApprovalStatus.DRAFT,ApprovalStatus.REJECTED,ApprovalStatus.CHANGES_REQUESTED));
++  expected.put(ReviewAction.UNDER_REVIEW,Set.of(ApprovalStatus.SUBMITTED));
++  expected.put(ReviewAction.APPROVE,Set.of(ApprovalStatus.UNDER_REVIEW));
++  expected.put(ReviewAction.REJECT,Set.of(ApprovalStatus.SUBMITTED,ApprovalStatus.UNDER_REVIEW));
++  expected.put(ReviewAction.REQUEST_CHANGES,Set.of(ApprovalStatus.SUBMITTED,ApprovalStatus.UNDER_REVIEW,ApprovalStatus.APPROVED));
++  expected.put(ReviewAction.SUSPEND,Set.of(ApprovalStatus.APPROVED));expected.put(ReviewAction.REACTIVATE,Set.of(ApprovalStatus.SUSPENDED));
++  expected.put(ReviewAction.SERVICE_CHANGE,Set.of(ApprovalStatus.APPROVED));expected.put(ReviewAction.DOCUMENT_VERIFY,Set.of(ApprovalStatus.UNDER_REVIEW));expected.put(ReviewAction.SETTLEMENT_VERIFY,Set.of(ApprovalStatus.UNDER_REVIEW));
++  for(var action:ReviewAction.values())for(var from:ApprovalStatus.values())check(WorkflowRules.permits(from,action)==expected.get(action).contains(from));
++  for(var approval:ApprovalStatus.values())for(var status:RestaurantStatus.values())for(int flags=0;flags<8;flags++)
++    check(WorkflowRules.effectiveService(approval,status,(flags&1)!=0,(flags&2)!=0,(flags&4)!=0)==(approval==ApprovalStatus.APPROVED && status==RestaurantStatus.ACTIVE && flags==7));
++  check(WorkflowRules.validHours(true,null,null,false));check(!WorkflowRules.validHours(true,LocalTime.NOON,null,false));
++  check(WorkflowRules.validHours(false,LocalTime.of(20,0),LocalTime.of(2,0),true));check(!WorkflowRules.validHours(false,LocalTime.of(20,0),LocalTime.of(2,0),false));
++  check(!WorkflowRules.validHours(false,LocalTime.NOON,LocalTime.NOON,false));check(WorkflowRules.validHours(false,LocalTime.NOON,LocalTime.NOON,true));
++  var c=new SettlementCipher(Base64.getEncoder().encodeToString(new byte[32]));var id=UUID.randomUUID();String bank="123456789012";
++  String a=c.encrypt(id,bank),b=c.encrypt(id,bank);check(!a.equals(b));check(!a.contains(bank));check(c.decrypt(id,a).equals(bank));
++  rejects(()->c.decrypt(UUID.randomUUID(),a));rejects(()->new SettlementCipher("short"));rejects(()->c.decrypt(id,"v2:"+a));
++  byte[] tampered=Base64.getDecoder().decode(a.substring(3));tampered[15]^=1;rejects(()->c.decrypt(id,"v1:"+Base64.getEncoder().encodeToString(tampered)));
++  check(DocumentContentRules.detect("%PDF-1.7 test".getBytes()).equals("application/pdf"));
++  check(DocumentContentRules.detect(new byte[]{(byte)137,80,78,71,13,10,26,10}).equals("image/png"));
++  check(DocumentContentRules.detect(new byte[]{(byte)255,(byte)216,(byte)255}).equals("image/jpeg"));
++  rejects(()->DocumentContentRules.detect("<script/>".getBytes()));rejects(()->DocumentContentRules.detect(new byte[DocumentContentRules.MAX_BYTES+1]));
++  rejects(()->DocumentContentRules.validateKey("../../credentials"));rejects(()->DocumentContentRules.validateKey("/etc/passwd"));
++  DocumentContentRules.validateKey("restaurants/"+UUID.randomUUID()+"/documents/"+UUID.randomUUID());count++;
++  check(DocumentContentRules.safeFilename("../../unsafe file\r\n.pdf").equals("unsafe_file__.pdf"));
++  System.out.println("PASS: "+count+" executable assertions against actual Phase 3 helper classes; not Spring/JUnit/integration tests.");
++ }
++}
+--- a/src/main/java/com/bookeat/restaurant/controller/OwnerRestaurantController.java
++++ b/src/main/java/com/bookeat/restaurant/controller/OwnerRestaurantController.java
+@@ -73,6 +73,10 @@
+     public ApiResponse<Detail> updateMenuSetup(@AuthenticationPrincipal AppPrincipal p,@PathVariable UUID id,@Valid @RequestBody MenuSetup q) {return ApiResponse.ok("Onboarding step saved",onboarding.updateMenuSetup(p.userId(),id,q));}
+     @PutMapping("/{id}/team-access") @Operation(summary="Save team-access",description="OWNER + RESTAURANT_OWN_MANAGE. Requires current restaurant version. Editable in DRAFT, CHANGES_REQUESTED or REJECTED. PUT replaces this step. Saves planned staff access; does not grant roles or send invitations.")
+     public ApiResponse<Detail> updateTeamAccess(@AuthenticationPrincipal AppPrincipal p,@PathVariable UUID id,@Valid @RequestBody TeamAccess q) {return ApiResponse.ok("Onboarding step saved",onboarding.updateTeamAccess(p.userId(),id,q));}
++    @PutMapping("/{id}/onboarding-form")
++    public ApiResponse<Detail> updateForm(@AuthenticationPrincipal AppPrincipal p,@PathVariable UUID id,@Valid @RequestBody Form q) {
++        return ApiResponse.ok("Onboarding form saved",onboarding.updateForm(p.userId(),id,q));
++    }
+     @PostMapping("/{id}/submit") @Operation(summary="Submit restaurant for review",description="OWNER + RESTAURANT_OWN_MANAGE. Requires current version and complete applicable steps. Returns 422 with missing steps. Review documents may be pending.")
+     public ApiResponse<Detail> submit(@AuthenticationPrincipal AppPrincipal p,@PathVariable UUID id,@Valid @RequestBody VersionRequest q){return ApiResponse.ok("Restaurant submitted",onboarding.submit(p.userId(),id,q));}
+     @PostMapping(value="/{id}/documents",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+--- /dev/null
++++ b/src/main/java/com/bookeat/restaurant/dto/OnboardingForm.java
+@@ -0,0 +1,42 @@
++package com.bookeat.restaurant.dto;
++
++import jakarta.validation.Valid;
++import jakarta.validation.constraints.*;
++import java.math.BigDecimal;
++import java.util.List;
++
++/** Owner-entered onboarding plans. Does not grant staff access or publish a menu. */
++public record OnboardingForm(
++    @Size(max=2048) String website,
++    @Size(max=100) String cuisineType,
++    @NotBlank @Size(max=160) String businessName,
++    @Pattern(regexp="[A-Z]{5}[0-9]{4}[A-Z]") String panNumber,
++    @Size(max=250) String landmark,
++    boolean waitlistEnabled,
++    boolean customerTableSelection,
++    boolean takeawayEnabled,
++    boolean asapPickupEnabled,
++    boolean scheduledPickupEnabled,
++    @Min(1) @Max(240) Integer preparationTime,
++    @DecimalMin("0") @Digits(integer=8,fraction=2) BigDecimal minimumOrderValue,
++    @DecimalMin("0") @Digits(integer=8,fraction=2) BigDecimal packagingCharge,
++    @Size(max=2000) String pickupInstructions,
++    @Size(max=80) String payoutSchedule,
++    @Size(max=2000) String noShowPolicy,
++    @Size(max=2000) String lateArrivalPolicy,
++    @Size(max=2000) String takeawayCancellationPolicy,
++    @NotNull @Size(max=1000) List<@Valid Table> tables,
++    @NotNull @Size(max=100) List<@Valid Category> menuCategories,
++    @NotNull @Size(max=100) List<@Valid Staff> staff
++) {
++    public record Table(@NotBlank @Size(max=80) String tableNumber,
++        @Min(1) @Max(30) int capacity, @Size(max=100) String location, boolean available) {}
++    public record Category(@NotBlank @Size(max=100) String name,
++        @NotNull @Size(max=500) List<@Valid Item> items) {}
++    public record Item(@NotBlank @Size(max=160) String name, @Size(max=3000) String description,
++        @NotNull @DecimalMin("0") @Digits(integer=8,fraction=2) BigDecimal price,
++        @Size(max=100) String category, boolean vegetarian, boolean dineIn, boolean takeaway) {}
++    public record Staff(@NotBlank @Size(max=160) String name, @Size(max=30) String phone,
++        @NotBlank @Email @Size(max=320) String email, @NotBlank @Size(max=50) String role,
++        @NotNull @Size(max=100) List<@Size(max=100) String> permissions) {}
++}
+--- a/src/main/java/com/bookeat/restaurant/dto/RestaurantRequests.java
++++ b/src/main/java/com/bookeat/restaurant/dto/RestaurantRequests.java
+@@ -8,6 +8,8 @@
+ import java.math.BigDecimal;
+ public final class RestaurantRequests {
+  private RestaurantRequests() {}
++    public record Form(@NotNull @PositiveOrZero Long version,
++        @NotNull @Valid OnboardingForm form) {}
+     public record CreateRestaurant(
+         @NotBlank @Size(max=160) String restaurantName,
+         @NotNull RestaurantType restaurantType,
+--- a/src/main/java/com/bookeat/restaurant/dto/RestaurantResponses.java
++++ b/src/main/java/com/bookeat/restaurant/dto/RestaurantResponses.java
+@@ -27,5 +27,5 @@
+     public record Summary(UUID id, long version, String restaurantName, String city, ApprovalStatus approvalStatus, RestaurantStatus status, Set<ServiceType> enabledServices, Instant submittedAt, Instant createdAt, String ownerName, String phone, String email) {}
+     public record Owner(UUID id, UUID userId, String firstName, String lastName, String email) {}
+     public record DashboardContext(Owner owner, Summary restaurant, ApprovalStatus approvalStatus, RestaurantStatus restaurantStatus, Set<ServiceType> enabledServices, Set<String> permissions, boolean onboardingComplete, Progress progress) {}
+-    public record Detail(UUID id, long version, UUID ownerId, String restaurantName, String description, RestaurantType restaurantType, String email, String phone, String alternatePhone, String addressLine1, String addressLine2, String city, String state, String postalCode, String country, BigDecimal latitude, BigDecimal longitude, String timezone, String businessRegistrationNumber, String gstNumber, String fssaiNumber, String logoUrl, String coverImageUrl, ApprovalStatus approvalStatus, RestaurantStatus status, Instant submittedAt, Instant approvedAt, UUID approvedBy, String rejectionReason, String changeRequestReason, Instant createdAt, Instant updatedAt, List<ServiceActivationView> services, List<OperatingHourView> operatingHours, List<SpecialScheduleView> specialSchedules, List<DocumentView> documents, ReservationSettingsView reservationSettings, TakeawaySettingsView takeawaySettings, DiniTicketSettingsView diniticketSettings, PolicyView policies, SettlementProfileView settlementProfile, TableSetupView tableSetup, MenuSetupView menuSetup, TeamAccessView teamAccess, List<TeamDraftView> teamMembers, Progress onboardingProgress) {}
++    public record Detail(UUID id, long version, UUID ownerId, String restaurantName, String description, RestaurantType restaurantType, String email, String phone, String alternatePhone, String addressLine1, String addressLine2, String city, String state, String postalCode, String country, BigDecimal latitude, BigDecimal longitude, String timezone, String businessRegistrationNumber, String gstNumber, String fssaiNumber, String logoUrl, String coverImageUrl, ApprovalStatus approvalStatus, RestaurantStatus status, Instant submittedAt, Instant approvedAt, UUID approvedBy, String rejectionReason, String changeRequestReason, Instant createdAt, Instant updatedAt, List<ServiceActivationView> services, List<OperatingHourView> operatingHours, List<SpecialScheduleView> specialSchedules, List<DocumentView> documents, ReservationSettingsView reservationSettings, TakeawaySettingsView takeawaySettings, DiniTicketSettingsView diniticketSettings, PolicyView policies, SettlementProfileView settlementProfile, TableSetupView tableSetup, MenuSetupView menuSetup, TeamAccessView teamAccess, List<TeamDraftView> teamMembers, Progress onboardingProgress, OnboardingForm onboardingForm) {}
+ }
+--- a/src/main/java/com/bookeat/restaurant/entity/Restaurant.java
++++ b/src/main/java/com/bookeat/restaurant/entity/Restaurant.java
+@@ -67,4 +67,7 @@
+     private String changeRequestReason;
+     @Column(nullable=false)
+     private long changeSequence;
++    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
++    @Column(columnDefinition="jsonb")
++    private com.bookeat.restaurant.dto.OnboardingForm onboardingForm;
+ }
+--- a/src/main/java/com/bookeat/restaurant/enums/DocumentType.java
++++ b/src/main/java/com/bookeat/restaurant/enums/DocumentType.java
+@@ -1,2 +1,2 @@
+ package com.bookeat.restaurant.enums;
+-public enum DocumentType { FSSAI, GST, BUSINESS_REGISTRATION, OWNER_ID, PAN, OTHER }
++public enum DocumentType { FSSAI, GST, BUSINESS_REGISTRATION, OWNER_ID, PAN, LOGO, COVER_IMAGE, OTHER }
+--- a/src/main/java/com/bookeat/restaurant/mapper/RestaurantMapper.java
++++ b/src/main/java/com/bookeat/restaurant/mapper/RestaurantMapper.java
+@@ -85,7 +85,7 @@
+         restaurantMenuSetup.findByRestaurantId(r.getId()).map(this::map).orElse(null),
+         restaurantTeamAccess.findByRestaurantId(r.getId()).map(this::map).orElse(null),
+         restaurantTeamDraft.findByRestaurantIdOrderByCreatedAtAscIdAsc(r.getId()).stream().map(this::map).toList(),
+-        progress.calculate(r));}
++        progress.calculate(r), r.getOnboardingForm());}
+     public ServiceActivationView map(RestaurantServiceActivation e) {return new ServiceActivationView(e.getId(), e.getServiceType(), e.isRequested(), e.isAuthorized(), e.isEnabled(), e.getActivatedAt(), e.getDisabledAt());}
+     public OperatingHourView map(RestaurantOperatingHour e) {return new OperatingHourView(e.getId(), e.getDayOfWeek(), e.getOpeningTime(), e.getClosingTime(), e.isClosed(), e.isClosesNextDay());}
+     public SpecialScheduleView map(RestaurantSpecialSchedule e) {return new SpecialScheduleView(e.getId(), e.getDate(), e.isClosed(), e.getOpeningTime(), e.getClosingTime(), e.isClosesNextDay(), e.getReason());}
+--- a/src/main/java/com/bookeat/restaurant/service/OnboardingProgressService.java
++++ b/src/main/java/com/bookeat/restaurant/service/OnboardingProgressService.java
+@@ -47,7 +47,11 @@
+         };
+     }
+     public boolean verificationComplete(Restaurant r) {
+-        return true; // Bypassed for easy admin approval
++        var docs=restaurantDocument.findByRestaurantIdAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(r.getId());
++        return requiredDocuments(r).stream().allMatch(t->docs.stream().anyMatch(d->
++            d.getDocumentType()==t && d.getVerificationStatus()==VerificationStatus.VERIFIED && documentMatches(r,d)))
++            && restaurantSettlementProfile.findByRestaurantId(r.getId()).map(p->p.isVerified()
++                && Objects.equals(p.getGstNumber(),r.getGstNumber())).orElse(false);
+     }
+     public boolean configured(Restaurant r,ServiceType type) {
+         return switch(type) {
+--- a/src/main/java/com/bookeat/restaurant/service/OwnerOnboardingService.java
++++ b/src/main/java/com/bookeat/restaurant/service/OwnerOnboardingService.java
+@@ -23,5 +23,6 @@
+     Detail updateSpecialSchedules(UUID actor,UUID id,SpecialSchedules request);
+     Detail selectServices(UUID actor,UUID id,ServiceSelection request);
+     Detail updateTeamAccess(UUID actor,UUID id,TeamAccess request);
++    Detail updateForm(UUID actor,UUID id,Form request);
+     Detail submit(UUID actor,UUID id,VersionRequest request);
+ }
+--- a/src/main/java/com/bookeat/restaurant/service/WorkflowRules.java
++++ b/src/main/java/com/bookeat/restaurant/service/WorkflowRules.java
+@@ -9,10 +9,10 @@
+     public static boolean permits(ApprovalStatus from, ReviewAction action) {
+         return switch(action) {
+             case SUBMIT -> ownerEditable(from);
+-            case UNDER_REVIEW -> from==ApprovalStatus.SUBMITTED || from==ApprovalStatus.DRAFT;
+-            case APPROVE -> from==ApprovalStatus.UNDER_REVIEW || from==ApprovalStatus.SUBMITTED || from==ApprovalStatus.DRAFT;
+-            case REJECT -> from==ApprovalStatus.SUBMITTED || from==ApprovalStatus.UNDER_REVIEW || from==ApprovalStatus.DRAFT;
+-            case REQUEST_CHANGES -> from==ApprovalStatus.SUBMITTED || from==ApprovalStatus.UNDER_REVIEW || from==ApprovalStatus.APPROVED || from==ApprovalStatus.DRAFT;
++            case UNDER_REVIEW -> from==ApprovalStatus.SUBMITTED;
++            case APPROVE -> from==ApprovalStatus.UNDER_REVIEW;
++            case REJECT -> from==ApprovalStatus.SUBMITTED || from==ApprovalStatus.UNDER_REVIEW;
++            case REQUEST_CHANGES -> from==ApprovalStatus.SUBMITTED || from==ApprovalStatus.UNDER_REVIEW || from==ApprovalStatus.APPROVED;
+             case SUSPEND -> from==ApprovalStatus.APPROVED;
+             case REACTIVATE -> from==ApprovalStatus.SUSPENDED;
+             case SERVICE_CHANGE -> from==ApprovalStatus.APPROVED;
+--- a/src/main/java/com/bookeat/restaurant/service/impl/AdminRestaurantServiceImpl.java
++++ b/src/main/java/com/bookeat/restaurant/service/impl/AdminRestaurantServiceImpl.java
+@@ -65,7 +65,7 @@
+     }
+     private void readiness(Restaurant r) {
+         var p=progress.calculate(r);
+-        // if(!p.complete()) throw new OnboardingIncompleteException(p.missingSteps());
++        if(!p.complete()) throw new OnboardingIncompleteException(p.missingSteps());
+         if(!progress.verificationComplete(r)) throw new ApiException(ErrorCode.VERIFICATION_REQUIRED);
+     }
+     private void enabled(RestaurantServiceActivation s,boolean enabled) {
+@@ -86,8 +86,8 @@
+         var r=lock(actor,id,q.version(),ReviewAction.APPROVE);readiness(r);
+         var entries=services.findByRestaurantIdOrderByCreatedAtAscIdAsc(id);
+         var validServices = q.services().stream().filter(t->entries.stream().anyMatch(s->s.getServiceType()==t && s.isRequested()) && progress.configured(r,t)).toList();
+-        // if(validServices.isEmpty())
+-        //     throw new ApiException(ErrorCode.SERVICE_NOT_AVAILABLE);
++        if(validServices.isEmpty() || validServices.size()!=q.services().size())
++            throw new ApiException(ErrorCode.SERVICE_NOT_AVAILABLE);
+         var from=r.getApprovalStatus();r.setApprovalStatus(ApprovalStatus.APPROVED);r.setStatus(RestaurantStatus.ACTIVE);
+         r.setApprovedAt(clock.instant());r.setApprovedBy(actor);r.setRejectionReason(null);r.setChangeRequestReason(null);
+         entries.forEach(s->{boolean grant=validServices.contains(s.getServiceType());s.setAuthorized(grant);enabled(s,grant);});
+--- a/src/main/java/com/bookeat/restaurant/service/impl/OwnerOnboardingServiceImpl.java
++++ b/src/main/java/com/bookeat/restaurant/service/impl/OwnerOnboardingServiceImpl.java
+@@ -84,8 +84,9 @@
+         r.setEmail(q.email().trim().toLowerCase(Locale.ROOT));
+         r.setPhone(q.phone());
+         r.setAlternatePhone(q.alternatePhone());
+-        r.setLogoUrl(q.logoUrl());
+-        r.setCoverImageUrl(q.coverImageUrl());
++        // Null from a details-only client must not erase an uploaded asset.
++        if(q.logoUrl()!=null) r.setLogoUrl(q.logoUrl());
++        if(q.coverImageUrl()!=null) r.setCoverImageUrl(q.coverImageUrl());
+         return finish(r,actor,"ONBOARDING_DETAILS_UPDATED");
+         }
+ 
+@@ -268,6 +269,11 @@
+         q.members().forEach(m->{var d=new RestaurantTeamDraft();d.setRestaurant(r);d.setEmail(m.email().trim().toLowerCase(Locale.ROOT));d.setRole(m.role());restaurantTeamDraft.save(d);});
+         return finish(r,actor,"ONBOARDING_TEAM_PLAN_UPDATED");
+     }
++    @Override public Detail updateForm(UUID actor,UUID id,Form q) {
++        var r=editable(actor,id,q.version());
++        r.setOnboardingForm(q.form());
++        return finish(r,actor,"ONBOARDING_FORM_UPDATED");
++    }
+     @Override public Detail submit(UUID actor,UUID id,VersionRequest q) {
+         var r=editable(actor,id,q.version());var p=progress.calculate(r);
+         if(!p.complete()) throw new OnboardingIncompleteException(p.missingSteps());
+--- a/src/main/java/com/bookeat/restaurant/service/impl/RestaurantDocumentServiceImpl.java
++++ b/src/main/java/com/bookeat/restaurant/service/impl/RestaurantDocumentServiceImpl.java
+@@ -38,6 +38,8 @@
+         catch(IOException ex){throw new ApiException(ErrorCode.DOCUMENT_INVALID);}
+         String type;
+         try{type=DocumentContentRules.detect(bytes);}catch(IllegalArgumentException ex){throw new ApiException(ErrorCode.DOCUMENT_INVALID);}
++        if((q.documentType()==DocumentType.LOGO || q.documentType()==DocumentType.COVER_IMAGE)
++            && !type.startsWith("image/")) throw new ApiException(ErrorCode.DOCUMENT_INVALID);
+         var d=new RestaurantDocument();d.setRestaurant(r);d.setDocumentType(q.documentType());d.setDocumentNumber(q.documentNumber().trim());
+         if(!progress.documentMatches(r,d)) throw new ApiException(ErrorCode.VALIDATION_FAILED);
+         var current=documents.findByRestaurantIdAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(id);
+@@ -54,13 +56,18 @@
+         store.put(key,bytes,type);d.setFileKey(key);d.setStorageProvider(store.provider());d.setOriginalFilename(DocumentContentRules.safeFilename(file.getOriginalFilename()));
+         d.setContentType(type);d.setSizeBytes(bytes.length);d.setSha256(digest(bytes));d.setVerificationStatus(VerificationStatus.PENDING);
+         d.setFileUrl("pending");documents.save(d);d.setFileUrl("/api/v1/owner/restaurants/"+id+"/documents/"+d.getId()+"/download");
++        if(q.documentType()==DocumentType.LOGO) r.setLogoUrl(d.getFileUrl());
++        if(q.documentType()==DocumentType.COVER_IMAGE) r.setCoverImageUrl(d.getFileUrl());
+         changes.finish(r,actor,"RESTAURANT_DOCUMENT_UPLOADED");return mapper.detail(r,false);
+     }
+     @Override @PreAuthorize("hasRole('OWNER') and hasAuthority('RESTAURANT_OWN_MANAGE')")
+     public Detail delete(UUID actor,UUID id,UUID documentId,long version) {
+         var r=access.lockOwnedRestaurant(actor,id,version);
+         if(!WorkflowRules.ownerEditable(r.getApprovalStatus())) throw new ApiException(ErrorCode.RESTAURANT_STATE_INVALID);
+-        document(id,documentId).setDeletedAt(clock.instant());
++        var d=document(id,documentId);
++        d.setDeletedAt(clock.instant());
++        if(d.getDocumentType()==DocumentType.LOGO) r.setLogoUrl(null);
++        if(d.getDocumentType()==DocumentType.COVER_IMAGE) r.setCoverImageUrl(null);
+         changes.finish(r,actor,"RESTAURANT_DOCUMENT_DELETED");return mapper.detail(r,false);
+     }
+     @Override @Transactional(readOnly=true) @PreAuthorize("hasRole('OWNER') and hasAuthority('RESTAURANT_OWN_MANAGE')")
+--- /dev/null
++++ b/src/main/resources/db/migration/V25__persist_owner_onboarding_form.sql
+@@ -0,0 +1,6 @@
++-- Keep the full owner-entered plans alongside the normalized onboarding configuration.
++-- Existing missing values cannot be reconstructed by a schema migration.
++ALTER TABLE restaurants ADD COLUMN onboarding_form jsonb;
++ALTER TABLE restaurant_documents DROP CONSTRAINT restaurant_documents_document_type_check;
++ALTER TABLE restaurant_documents ADD CONSTRAINT restaurant_documents_document_type_check
++    CHECK (document_type IN ('FSSAI','GST','BUSINESS_REGISTRATION','OWNER_ID','PAN','LOGO','COVER_IMAGE','OTHER'));
+--- a/src/test/java/com/bookeat/RestaurantOnboardingIT.java
++++ b/src/test/java/com/bookeat/RestaurantOnboardingIT.java
+@@ -90,6 +90,50 @@
+         for(var doc:docs)review("/documents/"+doc.path("id").asText()+"/verification",Map.of("verified",true));
+         review("/settlement-profile/verification",Map.of("verified",true));
+     }
++    @Test void fullFormSurvivesDatabaseReloadAndCannotAcceptCredentials() throws Exception {
++        ready();
++        var form=json.readTree("""
++            {"website":"https://example.test","cuisineType":"South Indian","businessName":"Test Hospitality",
++             "panNumber":"ABCDE1234F","landmark":"Near station","waitlistEnabled":true,"customerTableSelection":false,
++             "packagingCharge":12.50,"pickupInstructions":"Side entrance","payoutSchedule":"Weekly",
++             "noShowPolicy":"Call owner","lateArrivalPolicy":"15 minutes","takeawayCancellationPolicy":"Before preparation",
++             "tables":[{"tableNumber":"A1","capacity":4,"location":"Ground floor","available":true}],
++             "menuCategories":[{"name":"Mains","items":[{"name":"Dosa","description":"Rice pancake","price":95,
++               "category":"Mains","vegetarian":true,"dineIn":true,"takeaway":true}]}],
++             "staff":[{"name":"Test Manager","phone":"12345678","email":"staff@example.test","role":"Manager","permissions":["View Bookings"]}]}
++            """);
++        save("/onboarding-form",Map.of("form",form));
++        var reloaded=data(call("GET",ownerPath(""),null,ownerToken).andExpect(status().isOk()));
++        assertThat(reloaded.path("city").asText()).isEqualTo("Chennai");
++        assertThat(reloaded.path("businessRegistrationNumber").asText()).isEqualTo("REG-1234");
++        assertThat(reloaded.path("operatingHours").size()).isEqualTo(7);
++        assertThat(reloaded.path("settlementProfile").path("maskedAccountNumber").asText()).isEqualTo("****9012");
++        var stored=json.readTree(jdbc.queryForObject("select onboarding_form::text from restaurants where id=?",String.class,UUID.fromString(id)));
++        assertThat(stored.path("businessName").asText()).isEqualTo("Test Hospitality");
++        assertThat(stored.path("menuCategories").get(0).path("items").get(0).path("name").asText()).isEqualTo("Dosa");
++        assertThat(stored.path("staff").get(0).path("phone").asText()).isEqualTo("12345678");
++        assertThat(stored.has("accountNumber")).isFalse();
++        assertThat(reloaded.path("onboardingForm").path("tables").get(0).path("tableNumber").asText()).isEqualTo("A1");
++        ((ObjectNode)form).put("password","must-not-be-stored");
++        call("PUT",ownerPath("/onboarding-form"),body(Map.of("form",form)),ownerToken).andExpect(status().isBadRequest());
++        call("PUT",ownerPath("/onboarding-form"),body(Map.of("form",form)),otherToken).andExpect(status().is4xxClientError());
++    }
++    @Test void draftCannotBeReviewedOrApprovedAsSubmitted() throws Exception {
++        call("PUT",adminPath("/under-review"),body(Map.of()),adminToken).andExpect(status().isConflict());
++        call("PUT",adminPath("/approve"),body(Map.of("services",List.of("RESTAURANT"))),adminToken).andExpect(status().isConflict());
++        assertThat(jdbc.queryForObject("select submitted_at from restaurants where id=?",Object.class,UUID.fromString(id))).isNull();
++    }
++    @Test void uploadedLogoIsStoredAndDetailsSaveDoesNotEraseIt() throws Exception {
++        byte[] png={(byte)137,80,78,71,13,10,26,10};
++        var metadata=new MockMultipartFile("metadata","metadata.json","application/json",json.writeValueAsBytes(body(Map.of("documentType","LOGO","documentNumber","LOGO"))));
++        var file=new MockMultipartFile("file","logo.png","image/png",png);
++        var uploaded=capture(mvc.perform(multipart("/api/v1"+ownerPath("/documents")).file(metadata).file(file).header("Authorization","Bearer "+ownerToken)).andExpect(status().isOk()));
++        String url=uploaded.path("logoUrl").asText();
++        assertThat(url).contains("/documents/").endsWith("/download");
++        save("",Map.of("restaurantName","Test Kitchen","restaurantType","RESTAURANT","description","Fresh food","email","restaurant@example.test","phone","+919876543210"));
++        assertThat(jdbc.queryForObject("select logo_url from restaurants where id=?",String.class,UUID.fromString(id))).isEqualTo(url);
++        mvc.perform(get(url).header("Authorization","Bearer "+ownerToken)).andExpect(status().isOk()).andExpect(content().bytes(png));
++    }
+     @Test void fiveMigrationsAndDraftCreatedWithoutActivation() throws Exception {
+         assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where success=true and version in ('1','2','3','4','5')",Integer.class)).isEqualTo(5);
+         var d=data(call("GET",ownerPath(""),null,ownerToken).andExpect(status().isOk()));

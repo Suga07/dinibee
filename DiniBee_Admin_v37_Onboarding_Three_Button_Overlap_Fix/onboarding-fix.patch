@@ -1,0 +1,214 @@
+--- a/components/bookeat/ecosystem/core-pages.tsx
++++ b/components/bookeat/ecosystem/core-pages.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useMemo, useState } from "react";
++import { useMemo, useRef, useState } from "react";
+ import {
+   Activity,
+   BadgeCheck,
+@@ -238,15 +238,16 @@
+   const [selected, setSelected] = useState<RestaurantRecord | null>(null);
+   const [detailData, setDetailData] = useState<any>(null);
+   const [detailLoading, setDetailLoading] = useState(false);
++  const [detailError, setDetailError] = useState<string | null>(null);
++  const detailRequest = useRef(0);
+   const [action, setAction] = useState<RestaurantAction>(null);
+   const rows: DataRow[] = data.map((item: any) => {
+     const rawServices = item.services || item.enabledServices || [];
+     const servicesList = Array.isArray(rawServices)
+       ? rawServices.map((service: string) => service === "DINITICKET" ? "DiniTicket" : service).join(", ")
+       : "";
+-    // Normalize DRAFT -> SUBMITTED for display: a restaurant exists but is not yet submitted.
+     const rawStatus: string = item.suspended ? "SUSPENDED" : (item.approvalStatus || "DRAFT");
+-    const displayStatus = rawStatus === "DRAFT" ? "SUBMITTED" : rawStatus;
++    const displayStatus = rawStatus;
+     return {
+       id: item.id,
+       restaurant: item.restaurantName || "Unnamed Restaurant",
+@@ -269,7 +270,7 @@
+   const titles: Record<RestaurantView, string> = { all: "All restaurants", pending: "Pending approval", approved: "Approved restaurants", rejected: "Rejected restaurants" };
+ 
+   async function completeAction() {
+-    if (!selected || !action) return;
++    if (!selected || !action || detailLoading || detailError || !detailData) return;
+     try {
+       // IMPORTANT: Use detailData.version (from GET /admin/restaurants/{id}) because
+       // the Summary DTO returned by the list endpoint does NOT include the version field.
+@@ -277,7 +278,7 @@
+       // the restaurant entity is updated many times during onboarding.
+       const version = (detailData?.version ?? selected.version ?? (selected as any).v ?? 0) as number;
+       if (action === "under_review") await restaurantService.updateApproval(selected.id, "UNDER_REVIEW", "Marked as under review by admin", version);
+-      if (action === "approve") await restaurantService.updateApproval(selected.id, "APPROVED", "Approved after admin verification", version);
++      if (action === "approve") await restaurantService.updateApproval(selected.id, "APPROVED", "Approved after admin verification", version, detailData?.requestedServices ?? []);
+       if (action === "reject") await restaurantService.updateApproval(selected.id, "REJECTED", "Rejected after compliance review", version);
+       if (action === "suspend") await restaurantService.setSuspended(selected.id, true, "Suspended by platform administrator", version);
+       if (action === "reactivate") await restaurantService.setSuspended(selected.id, false, "Reactivated by platform administrator", version);
+@@ -307,7 +308,7 @@
+       <PageHeader eyebrow="Restaurant management" title={titles[view]} description="Review restaurant identity, owner information, compliance, service access and approval history." actions={<><DataSourceNotice /><Button variant="outline" onClick={() => void reload()}><RefreshCw />Refresh</Button></>} />
+       <section className="stats-grid four-up">
+         <StatCard label="Total" value={formatCount(data.length)} note="Current result set" icon={Store} />
+-        <StatCard label="Pending" value={formatCount(data.filter((item: any) => ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "PENDING"].includes(item.approvalStatus)).length)} note="Awaiting decision" icon={FileClock} tone="gold" />
++        <StatCard label="Pending" value={formatCount(data.filter((item: any) => ["SUBMITTED", "UNDER_REVIEW", "PENDING"].includes(item.approvalStatus)).length)} note="Awaiting decision" icon={FileClock} tone="gold" />
+         <StatCard label="Approved" value={formatCount(data.filter((item: any) => item.approvalStatus === "APPROVED").length)} note="Eligible for services" icon={CheckCircle2} tone="green" />
+         <StatCard label="Suspended" value={formatCount(data.filter((item: any) => item.suspended || item.status === "SUSPENDED" || item.approvalStatus === "SUSPENDED").length)} note="Platform restriction" icon={ShieldAlert} tone="red" />
+       </section>
+@@ -316,18 +317,26 @@
+         setSelected(summary);
+         setDetailData(null);
+         if (summary?.id) {
++          const request = ++detailRequest.current;
+           setDetailLoading(true);
+-          const detail = await restaurantService.getDetail(String(summary.id));
+-          setDetailData(detail);
+-          setDetailLoading(false);
++          setDetailError(null);
++          try {
++            const detail = await restaurantService.getDetail(String(summary.id));
++            if (request === detailRequest.current) setDetailData(detail);
++          } catch (caught) {
++            if (request === detailRequest.current) setDetailError(caught instanceof Error ? caught.message : "Unable to load restaurant details");
++          } finally {
++            if (request === detailRequest.current) setDetailLoading(false);
++          }
+         }
+       }} actionLabel="Open restaurant" emptyTitle="No restaurants found" />
+ 
+-      <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
++      <Sheet open={Boolean(selected)} onOpenChange={(open) => { if (!open) { setSelected(null); detailRequest.current++; } }}>
+         <SheetContent className="ecosystem-sheet restaurant-detail-sheet">
+           <SheetHeader><span className="sheet-mark"><Store /></span><SheetTitle>{selected?.restaurantName}</SheetTitle><SheetDescription>{selected?.id} · Complete platform verification record</SheetDescription></SheetHeader>
+           {selected ? <div className="ecosystem-sheet-body">
+-            <div className="detail-identity"><EntityCell title={detailData?.ownerName || selected.ownerName || "—"} subtitle="Restaurant owner" /><StatusBadge status={selected.suspended ? "SUSPENDED" : (selected.approvalStatus === "DRAFT" ? "SUBMITTED" : selected.approvalStatus)} /></div>
++            {detailError ? <p role="alert">{detailError}. Close and reopen this restaurant to retry.</p> : null}
++            <div className="detail-identity"><EntityCell title={detailData?.ownerName || selected.ownerName || "—"} subtitle="Restaurant owner" /><StatusBadge status={selected.suspended ? "SUSPENDED" : (detailData?.approvalStatus ?? selected.approvalStatus)} /></div>
+ 
+             <DetailSection title="Restaurant & owner information"><DetailGrid fields={[
+               { label: "Restaurant", value: detailData?.restaurantName || selected.restaurantName || "—" },
+@@ -338,22 +347,22 @@
+               { label: "Created", value: selected.createdAt || "—" },
+             ]} /></DetailSection>
+             <DetailSection title="Business information"><DetailGrid fields={[
+-              { label: "Legal business", value: detailLoading ? "Loading…" : (detailData?.businessInfo?.businessRegistrationNumber || "—") },
++              { label: "Legal business", value: detailLoading ? "Loading…" : (detailData?.businessInfo?.businessName || "—") },
++              { label: "Registration number", value: detailData?.businessInfo?.businessRegistrationNumber || "—" },
+               { label: "GST", value: detailLoading ? "Loading…" : (detailData?.businessInfo?.gstNumber || "—") },
+               { label: "FSSAI", value: detailLoading ? "Loading…" : (detailData?.businessInfo?.fssaiNumber || "—") },
+               { label: "Operating hours", value: detailLoading ? "Loading…" : (detailData?.operatingHours?.hours?.length ? `${detailData.operatingHours.hours.filter((h: any) => !h.closed).length} days / week` : "—") },
+               { label: "Payment account", value: detailLoading ? "Loading…" : (detailData?.settlementProfile ? `${detailData.settlementProfile.bankName} — ${detailData.settlementProfile.maskedAccountNumber || detailData.settlementProfile.accountHolderName || "—"}` : "—") },
+-              { label: "Business services", value: <ServicePills services={selected.services || (selected as any).enabledServices || []} /> },
++              { label: "Business services", value: <ServicePills services={detailData?.requestedServices ?? selected.services ?? (selected as any).enabledServices ?? []} /> },
+             ]} /></DetailSection>
+-            <DetailSection title="Documents" description="Files remain owned by the restaurant application."><div className="document-status-list">{(selected.documents || []).map((document) => <div key={document.name}><FileCheck2 /><span>{document.name}</span><StatusBadge status={document.status} /></div>)}</div></DetailSection>
++            <DetailSection title="Documents" description="Files remain owned by the restaurant application."><div className="document-status-list">{(detailData?.documents || selected.documents || []).map((document: any) => <div key={document.id ?? document.name}><FileCheck2 /><span>{document.name}</span><StatusBadge status={document.status} /></div>)}</div></DetailSection>
+             <DetailSection title="Approval history"><div className="approval-history">{(selected.approvalHistory || []).map((item, index) => <div key={`${item.date}-${index}`}><span><StatusBadge status={item.status} /><strong>{item.note}</strong><small>{item.admin}</small></span><time>{item.date}</time></div>)}</div></DetailSection>
+             <div className="monitor-note"><ShieldAlert /><span><strong>Platform oversight only</strong><small>Tables, menu, staff, arrivals and daily restaurant operations remain in the Restaurant Owner App.</small></span></div>
+             <div className="sheet-button-row restaurant-actions flex flex-wrap gap-2 pt-2">
+-              {["DRAFT", "SUBMITTED", "PENDING"].includes(selected.approvalStatus as string) ? (
++              {["SUBMITTED", "PENDING"].includes(selected.approvalStatus as string) ? (
+                 <>
+                   <Button variant="outline" className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10" onClick={() => setAction("under_review")}>Mark Under Review</Button>
+                   <Button variant="outline" className="danger-outline" onClick={() => setAction("reject")}>Reject Application</Button>
+-                  <Button className="gold-button" onClick={() => setAction("approve")}>Approve Restaurant</Button>
+                 </>
+               ) : null}
+               {(selected.approvalStatus as string) === "UNDER_REVIEW" ? (
+@@ -441,8 +450,12 @@
+     setServices(Array.isArray(rawServices) ? rawServices : []);
+     // Fetch full detail to get the real optimistic-lock version (Summary DTO has no version).
+     if (restaurant?.id) {
+-      const detail = await restaurantService.getDetail(String(restaurant.id));
+-      setDetailData(detail);
++      try {
++        const detail = await restaurantService.getDetail(String(restaurant.id));
++        setDetailData(detail);
++      } catch (caught) {
++        toast.error(caught instanceof Error ? caught.message : "Unable to load restaurant");
++      }
+     }
+   }
+ 
+--- /dev/null
++++ b/lib/bookeat/services/restaurant-detail.mjs
+@@ -0,0 +1,19 @@
++/** Map the flat Spring Detail DTO to the admin view. Never promote drafts. */
++export function normalizeRestaurantDetail(detail) {
++  if (!detail || typeof detail !== "object" || !detail.id) throw new Error("Restaurant detail response is missing");
++  return {
++    ...detail,
++    location: {
++      addressLine1: detail.addressLine1, addressLine2: detail.addressLine2,
++      city: detail.city, state: detail.state, postalCode: detail.postalCode, country: detail.country,
++    },
++    businessInfo: {
++      businessName: detail.onboardingForm?.businessName ?? detail.settlementProfile?.taxName,
++      businessRegistrationNumber: detail.businessRegistrationNumber,
++      gstNumber: detail.gstNumber, fssaiNumber: detail.fssaiNumber,
++    },
++    operatingHours: { hours: Array.isArray(detail.operatingHours) ? detail.operatingHours : [] },
++    requestedServices: (detail.services ?? []).filter(s => s.requested).map(s => s.serviceType),
++    documents: (detail.documents ?? []).map(d => ({ ...d, name: d.originalFilename, status: d.verificationStatus })),
++  };
++}
+--- a/lib/bookeat/services/restaurant-service.ts
++++ b/lib/bookeat/services/restaurant-service.ts
+@@ -1,3 +1,4 @@
++import { normalizeRestaurantDetail } from "./restaurant-detail.mjs";
+ import { apiClient } from "@/lib/bookeat/api";
+ import { demoStore } from "@/lib/bookeat/demo-data";
+ import { readCollection, runMutation, unwrapResource } from "@/lib/bookeat/services/data-source";
+@@ -25,21 +26,17 @@
+    * This endpoint returns location, business info, settlement profile, etc.
+    */
+   getDetail: async (id: string): Promise<any> => {
+-    try {
+-      const res = await apiClient.get<any>(`/admin/restaurants/${id}`);
+-      return unwrapResource(res);
+-    } catch {
+-      return null;
+-    }
++    const res = await apiClient.get<any>(`/admin/restaurants/${id}`);
++    return normalizeRestaurantDetail(unwrapResource(res));
+   },
+ 
+-  updateApproval: (id: string, status: string, note: string, version: number = 0) =>
++  updateApproval: (id: string, status: string, note: string, version: number = 0, requestedServices: BusinessService[] = []) =>
+     runMutation(
+       () => {
+         if (status === "APPROVED") {
+           return apiClient.put<RestaurantRecord>(`/admin/restaurants/${id}/approve`, {
+             version,
+-            services: ["RESTAURANT", "TAKEAWAY", "DINITICKET"],
++            services: requestedServices,
+             reason: note || "Approved by Admin",
+           });
+         }
+--- /dev/null
++++ b/tests/restaurant-detail.test.mjs
+@@ -0,0 +1,25 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { normalizeRestaurantDetail } from '../lib/bookeat/services/restaurant-detail.mjs';
++
++test('flat backend DTO displays saved location, legal info, hours and requested services', () => {
++  const result = normalizeRestaurantDetail({id:'r1', approvalStatus:'DRAFT', addressLine1:'10 Test Street', city:'Chennai',
++    state:'TN', postalCode:'600001', businessRegistrationNumber:'REG-123', gstNumber:'GST-value', fssaiNumber:'12345678901234',
++    onboardingForm:{businessName:'Test Hospitality'}, operatingHours:[{dayOfWeek:'MONDAY',closed:false}],
++    services:[{serviceType:'RESTAURANT',requested:true,enabled:false},{serviceType:'TAKEAWAY',requested:false}],
++    settlementProfile:{bankName:'Test Bank',maskedAccountNumber:'****9012'},
++    documents:[{id:'d1',originalFilename:'license.pdf',verificationStatus:'PENDING'}]});
++  assert.equal(result.location.city,'Chennai'); assert.equal(result.businessInfo.businessName,'Test Hospitality');
++  assert.equal(result.businessInfo.businessRegistrationNumber,'REG-123');
++  assert.equal(result.operatingHours.hours.length,1); assert.equal(result.approvalStatus,'DRAFT');
++  assert.deepEqual(result.requestedServices,['RESTAURANT']);
++  assert.equal(result.documents[0].name,'license.pdf'); assert.equal(result.documents[0].status,'PENDING');
++  assert.equal(result.settlementProfile.maskedAccountNumber,'****9012');
++});
++test('missing optional data stays absent rather than being invented', () => {
++  const result = normalizeRestaurantDetail({id:'r1',approvalStatus:'DRAFT'});
++  assert.equal(result.location.city,undefined); assert.deepEqual(result.requestedServices,[]);
++});
++test('empty responses produce an error rather than a blank detail drawer', () => {
++  for (const value of [null,undefined,{}]) assert.throws(() => normalizeRestaurantDetail(value));
++});

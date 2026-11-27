@@ -1,0 +1,30 @@
+$kind: http-request
+description: "OWNER permission and owned restaurant required. Writes use the latest restaurantVersion; scripts save the next version. Archive requests are optional cleanup: run after completing the flow."
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/tables/{{tableId}}/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "restaurantVersion": {{restaurantVersion}},
+      "status": "AVAILABLE",
+      "reason": "Ready for service"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", () => pm.response.to.have.status(200));
+      const result = pm.response.json();
+      if (result.success && result.data) {
+        const d = result.data;
+        if (d.restaurantVersion !== undefined) pm.environment.set("restaurantVersion", String(d.restaurantVersion));
+        if (d.resource && d.resource.id) pm.environment.set("tableId", d.resource.id);
+      }
+    language: text/javascript
+order: 5000

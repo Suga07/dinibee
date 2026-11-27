@@ -1,0 +1,24 @@
+$kind: http-request
+description: Sandbox payment.succeeded example. Supply t=<current Unix milliseconds>,v=<hex HMAC SHA256 of timestamp + dot + exact substituted raw body>. Use the server webhook signing key outside Postman; never a checkout signature. Match account and live_mode. See docs/ZOHO_PAYMENTS.md.
+url: "{{baseUrl}}/payments/webhooks/zoho"
+method: POST
+headers:
+  Content-Type: application/json
+  X-Zoho-Webhook-Signature: "{{webhookSignature}}"
+body:
+  type: json
+  content: |-
+    {
+      "event_id": "{{webhookEventId}}",
+      "event_type": "payment.succeeded",
+      "account_id": "{{zohoAccountId}}",
+      "live_mode": false,
+      "event_object": {
+        "payment": {
+          "payment_id": "{{gatewayPaymentId}}"
+        }
+      }
+    }
+auth:
+  type: noauth
+order: 26000

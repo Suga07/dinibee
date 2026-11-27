@@ -1,0 +1,362 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  CalendarCheck2,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  FileCheck2,
+  FileText,
+  FileClock,
+  IndianRupee,
+  MapPin,
+  RefreshCw,
+  SlidersHorizontal,
+  Search,
+  ShoppingBag,
+  Store,
+  TicketCheck,
+  Users,
+  XCircle,
+} from "lucide-react";
+
+import { adminApi, getStoredToken } from "@/lib/bookeat/api";
+import { diniTicketService, paymentService, reservationService, restaurantService, takeawayService } from "@/lib/bookeat/services";
+import { useApiResource } from "@/hooks/use-api-resource";
+import type { DiniTicketRecord, PaymentRecord, ReservationRecord, RestaurantRecord, TakeawayRecord } from "@/lib/bookeat/types";
+import { PageHeader, StatCard, StatusBadge } from "@/components/bookeat/shared";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
+function money(value: unknown) {
+  const number = Number(value ?? 0) || 0;
+  return `₹${number.toLocaleString("en-IN")}`;
+}
+
+function text(value: unknown, fallback = "—") {
+  const out = String(value ?? "").trim();
+  return out || fallback;
+}
+
+function unwrapArray(payload: any): any[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+  for (const key of ["content", "items", "records", "results"]) {
+    if (Array.isArray(payload[key])) return payload[key];
+  }
+  if (payload.data !== undefined) return unwrapArray(payload.data);
+  return [];
+}
+
+function productionMediaUrl(value: unknown): string {
+  let url = String(value ?? "").trim();
+  if (!url) return "";
+  if (url.startsWith("/")) url = `https://api.dinibee.tech${url}`;
+  url = url
+    .replace(/^http:\/\/api\.dinibee\.tech(?::80)?/i, "https://api.dinibee.tech")
+    .replace(/^http:\/\/localhost(?::\d+)?/i, "https://api.dinibee.tech")
+    .replace(/^http:\/\/127\.0\.0\.1(?::\d+)?/i, "https://api.dinibee.tech")
+    .replace(/^http:\/\/200\.97\.166\.143(?::\d+)?/i, "https://api.dinibee.tech");
+  return url;
+}
+
+function restaurantImageCandidates(item: any): string[] {
+  const values: unknown[] = [
+    item?.coverImageUrl, item?.coverUrl, item?.coverImage,
+    item?.logoUrl, item?.logoImageUrl, item?.logoImage,
+    item?.imageUrl, item?.image, item?.restaurantImageUrl,
+    item?.media?.coverImageUrl, item?.media?.logoUrl, item?.media?.imageUrl,
+    item?.onboardingForm?.coverImageUrl, item?.onboardingForm?.logoUrl,
+    ...(Array.isArray(item?.photos) ? item.photos.map((p: any) => p?.url ?? p?.fileUrl ?? p) : []),
+    ...(Array.isArray(item?.documents) ? item.documents.filter((d: any) => ["COVER_IMAGE","LOGO"].includes(String(d?.documentType ?? "").toUpperCase())).map((d: any) => d?.fileUrl) : []),
+  ];
+  return Array.from(new Set(values.map(productionMediaUrl).filter(Boolean)));
+}
+
+function restaurantImage(item: any): string {
+  return restaurantImageCandidates(item)[0] ?? "";
+}
+
+function normalizeRestaurant(item: any) {
+  const location = item?.location && typeof item.location === "object"
+    ? [item.location.addressLine1, item.location.city, item.location.state].filter(Boolean).join(", ")
+    : item?.location || item?.address || item?.city;
+  const services = item?.requestedServices || item?.enabledServices || item?.services || [];
+  return {
+    ...item,
+    id: String(item?.id ?? ""),
+    restaurantName: text(item?.restaurantName ?? item?.name, "Unnamed Restaurant"),
+    ownerName: text(item?.ownerName ?? item?.owner?.name ?? item?.contactName, "Owner"),
+    phone: text(item?.phone ?? item?.phoneNumber ?? item?.mobileNumber),
+    email: text(item?.email ?? item?.ownerEmail),
+    location: text(location),
+    approvalStatus: text(item?.approvalStatus ?? item?.status, "SUBMITTED").toUpperCase(),
+    cuisine: text(item?.cuisine ?? item?.cuisineType ?? item?.businessInfo?.cuisineType, "Various"),
+    imageUrl: restaurantImage(item),
+    services: Array.isArray(services) ? services : [],
+    rating: Number(item?.rating ?? item?.averageRating ?? 0) || 0,
+    orders: Number(item?.orderCount ?? item?.totalOrders ?? 0) || 0,
+    todaySales: Number(item?.todaySalesAmount ?? item?.todaySales ?? 0) || 0,
+  };
+}
+
+function normalizeCustomer(c: any) {
+  const first = c?.firstName ?? c?.first_name ?? "";
+  const last = c?.lastName ?? c?.last_name ?? "";
+  const name = c?.fullName ?? c?.displayName ?? c?.name ?? `${first} ${last}`.trim();
+  return {
+    ...c, id: String(c?.id ?? c?.customerId ?? c?.userId ?? ""), name: text(name, "Customer"),
+    phone: text(c?.phoneNumber ?? c?.mobileNumber ?? c?.phone), email: text(c?.email),
+    location: text(c?.location ?? c?.city ?? c?.address?.city),
+    joined: c?.createdAt ? new Date(c.createdAt).toLocaleDateString("en-IN") : text(c?.joinedAt),
+    status: text(c?.status, "ACTIVE").toUpperCase(), premium: Boolean(c?.premium ?? c?.isPremium ?? c?.membershipActive ?? c?.membershipPlan),
+    orders: Number(c?.totalOrders ?? c?.orderCount ?? c?.ordersCount ?? 0) || 0,
+    reservations: Number(c?.reservationCount ?? c?.reservationsCount ?? 0) || 0, takeaway: Number(c?.takeawayCount ?? c?.takeawayOrdersCount ?? 0) || 0,
+    totalSpent: Number(c?.totalSpending ?? c?.totalSpent ?? c?.lifetimeValue ?? 0) || 0, imageUrl: productionMediaUrl(c?.profileImageUrl ?? c?.photoUrl ?? c?.avatarUrl),
+  };
+}
+
+function RestaurantThumb({ item, large = false }: { item: any; large?: boolean }) {
+  const candidates = restaurantImageCandidates(item);
+  const src = candidates[0];
+  return src ? (
+    <img className={large ? "v17-restaurant-image large" : "v17-restaurant-image"} src={src} data-candidates={JSON.stringify(candidates)} data-index="0" alt={item.restaurantName || "Restaurant"}
+      onError={(event) => {
+        const img = event.currentTarget;
+        let list: string[] = [];
+        try { list = JSON.parse(img.dataset.candidates || "[]"); } catch {}
+        const next = Number(img.dataset.index || "0") + 1;
+        if (next < list.length) { img.dataset.index = String(next); img.src = list[next]; } else { img.style.display = "none"; const fallback = img.nextElementSibling as HTMLElement | null; if (fallback) fallback.style.display = "grid"; }
+      }} />
+  ) : null;
+}
+
+function RestaurantVisual({ item, large = false }: { item: any; large?: boolean }) {
+  return <div className={large ? "v19-visual large" : "v19-visual"}><RestaurantThumb item={item} large={large}/><div className={large ? "v17-image-fallback large" : "v17-image-fallback"} style={{display: restaurantImageCandidates(item).length ? "none" : "grid"}}><Store /></div></div>;
+}
+
+async function fetchFullRestaurant(item: any) {
+  try { return normalizeRestaurant({ ...item, ...(await restaurantService.getDetail(item.id)) }); } catch { return item; }
+}
+
+async function viewPrivateDocument(restaurantId: string, document: any) {
+  const token = getStoredToken();
+  const raw = String(document?.fileUrl ?? document?.downloadUrl ?? document?.url ?? "").trim();
+  const url = raw
+    ? (raw.startsWith("http") ? raw : `https://api.dinibee.tech${raw.startsWith("/") ? "" : "/"}${raw}`)
+    : `https://api.dinibee.tech/api/v1/admin/restaurants/${restaurantId}/documents/${document.id}/download`;
+  const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!response.ok) throw new Error(`Document download failed (${response.status})`);
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  window.open(objectUrl, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+}
+
+function FilterInput({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  return <label className="v17-search"><Search /><Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} /></label>;
+}
+
+export function RestaurantOnboardingV17() {
+  const { data, loading, error, reload } = useApiResource(async () => {
+    const list = (await restaurantService.list()).map(normalizeRestaurant);
+    return Promise.all(list.map(fetchFullRestaurant));
+  }, [], [] as any[]);
+  const [status, setStatus] = useState("SUBMITTED");
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [detailTab, setDetailTab] = useState("overview");
+
+  const pendingStatuses = ["SUBMITTED", "UNDER_REVIEW", "PENDING", "CHANGES_REQUESTED"];
+  const countFor = (value: string) => value === "SUBMITTED" ? data.filter(r => pendingStatuses.includes(r.approvalStatus)).length : data.filter(r => r.approvalStatus === value).length;
+  const filtered = useMemo(() => data.filter((r) => {
+    const statusMatch = status === "SUBMITTED" ? pendingStatuses.includes(r.approvalStatus) : r.approvalStatus === status;
+    const haystack = `${r.restaurantName} ${r.ownerName} ${r.phone} ${r.location}`.toLowerCase();
+    return statusMatch && haystack.includes(query.toLowerCase());
+  }), [data, status, query]);
+
+  async function choose(item: any) { setSelected(await fetchFullRestaurant(item)); setDetailTab("overview"); }
+  async function approve(item: any) { await restaurantService.updateApproval(item.id, "APPROVED", "Approved by DiniBee admin", item.version ?? item.v ?? 0, item.services ?? []); setSelected(null); await reload(); }
+  async function reject(item: any) { await restaurantService.updateApproval(item.id, "REJECTED", "Rejected by DiniBee admin", item.version ?? item.v ?? 0, item.services ?? []); setSelected(null); await reload(); }
+
+  const docs = selected?.documents || [];
+  const docByType = (type: string) => docs.find((d: any) => String(d.documentType ?? d.type ?? "").toUpperCase() === type);
+  const docCards = [["FSSAI License","FSSAI"],["PAN Card","PAN"],["Bank Proof","BANK_PROOF"],["GST Certificate","GST"]] as const;
+
+  return <div className="v19-reference-page">
+    <div className={selected ? "v19-split-layout has-detail" : "v19-split-layout"}>
+      <main className="v19-main-pane">
+        <div className="v19-title-row"><div><h1>Restaurant Onboarding</h1><p>Review and manage restaurant partner applications</p></div><div className="v19-view-tools"><select className="v19-native-select v19-compact-select" defaultValue="newest" aria-label="Sort onboarding applications"><option value="newest">Newest First</option><option value="oldest">Oldest First</option></select><button className="v19-icon-toggle active">▦</button><button className="v19-icon-toggle">☰</button></div></div>
+        <div className="v19-tabbar">{[["SUBMITTED","Pending"],["APPROVED","Approved"],["REJECTED","Rejected"],["SUSPENDED","Suspended"]].map(([value,label]) => <button key={value} className={status===value?"active":""} onClick={()=>setStatus(value)}>{label} <span>({countFor(value)})</span></button>)}</div>
+        <div className="v19-filter-row"><select className="v19-native-select" defaultValue="all" aria-label="Restaurant type"><option value="all">All Types</option></select><select className="v19-native-select" defaultValue="all" aria-label="Location"><option value="all">All Locations</option></select><select className="v19-native-select" defaultValue="all" aria-label="Document status"><option value="all">All Documents</option></select><FilterInput value={query} onChange={setQuery} placeholder="Search by name, owner, phone…"/></div>
+        {error ? <div className="page-error panel-card">{error}</div> : null}
+        <div className="v19-onboarding-grid">{filtered.map((r) => <article className={selected?.id===r.id?"v19-onboarding-card selected":"v19-onboarding-card"} key={r.id}>
+          <div className="v19-card-image"><RestaurantVisual item={r} large/><span>{r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN") : "Application"}</span></div>
+          <div className="v19-card-copy"><h3>{r.restaurantName}</h3><p>♟ {r.ownerName}</p><p>⌕ {r.phone}</p><p>⌖ {r.location}</p><p>◉ {r.cuisine}</p><div className="v19-doc-tags"><span>FSSAI ✓</span><span>PAN ✓</span><span>Bank ✓</span><span className={(r.documents||[]).some((d:any)=>String(d.documentType??d.type??"").toUpperCase()==="GST")?"":"warn"}>GST {(r.documents||[]).some((d:any)=>String(d.documentType??d.type??"").toUpperCase()==="GST")?"✓":"×"}</span></div><div className="v19-two-actions"><Button variant="outline" onClick={()=>void choose(r)}>View</Button>{pendingStatuses.includes(r.approvalStatus)?<Button className="gold-button" onClick={()=>void approve(r)}>Approve</Button>:<Button className="gold-button" onClick={()=>void choose(r)}>Details</Button>}</div></div>
+        </article>)}{!loading&&!filtered.length?<div className="v17-empty">No restaurant applications in this filter.</div>:null}</div>
+      </main>
+      {selected ? <aside className="v19-detail-pane">
+        <button className="v19-close" onClick={()=>setSelected(null)}>×</button>
+        <h2>Restaurant Application</h2>
+        <div className="v19-hero"><RestaurantVisual item={selected} large/></div>
+        <div className="v19-identity-row"><RestaurantVisual item={{...selected, coverImageUrl:selected.logoUrl, imageUrl:selected.logoUrl}}/><div><h3>{selected.restaurantName}</h3><p>{selected.location} · {selected.cuisine}</p><small>Applied on {selected.createdAt ? new Date(selected.createdAt).toLocaleString("en-IN") : "—"}</small></div><StatusBadge status={selected.approvalStatus}/></div>
+        <nav className="v19-detail-tabs">{["overview","documents","photos","bank","notes"].map(tab=><button key={tab} className={detailTab===tab?"active":""} onClick={()=>setDetailTab(tab)}>{tab==="bank"?"Bank Details":tab.charAt(0).toUpperCase()+tab.slice(1)}</button>)}</nav>
+        {detailTab === "overview" ? <div className="v19-detail-scroll"><h4>Basic Information</h4><dl className="v19-definition-list"><div><dt>Restaurant Name</dt><dd>{selected.restaurantName}</dd></div><div><dt>Owner Name</dt><dd>{selected.ownerName}</dd></div><div><dt>Mobile Number</dt><dd>{selected.phone}</dd></div><div><dt>Email</dt><dd>{selected.email}</dd></div><div><dt>Address</dt><dd>{selected.location}</dd></div><div><dt>Cuisine Type</dt><dd>{selected.cuisine}</dd></div><div><dt>Services</dt><dd>{(selected.services||[]).join(", ")||"—"}</dd></div><div><dt>FSSAI Number</dt><dd>{selected.businessInfo?.fssaiNumber ?? selected.fssaiNumber ?? "—"}</dd></div><div><dt>GST Number</dt><dd>{selected.businessInfo?.gstNumber ?? selected.gstNumber ?? "—"}</dd></div></dl><div className="v19-section-title"><h4>Document Verification</h4><button onClick={()=>setDetailTab("documents")}>View All</button></div><div className="v19-document-cards">{docCards.map(([label,type])=>{const d=docByType(type);return <div key={type}><FileText/><b>{label}</b><StatusBadge status={d?.verificationStatus ?? d?.status ?? (d?"PENDING":"NOT_PROVIDED")}/>{d?<button onClick={()=>viewPrivateDocument(selected.id,d).catch(e=>toast.error(e.message))}>View</button>:<small>Not provided</small>}</div>})}</div></div> : null}
+        {detailTab === "documents" ? <div className="v19-detail-scroll"><div className="v19-section-title"><h4>Uploaded Documents</h4><span>{docs.length} files</span></div><div className="v19-document-list">{docs.map((d:any)=><div key={d.id}><FileText/><div><b>{d.originalFilename ?? d.name ?? d.documentType}</b><small>{d.documentType} · {d.maskedDocumentNumber ?? "No number"}</small></div><StatusBadge status={d.verificationStatus ?? d.status}/><Button size="sm" variant="outline" onClick={()=>viewPrivateDocument(selected.id,d).catch(e=>toast.error(e.message))}>View</Button></div>)}{!docs.length?<p>No uploaded documents found.</p>:null}</div></div>:null}
+        {detailTab === "photos" ? <div className="v19-detail-scroll"><h4>Restaurant Photos</h4><div className="v19-photo-grid"><RestaurantVisual item={selected} large/></div></div>:null}
+        {detailTab === "bank" ? <div className="v19-detail-scroll"><h4>Bank Details</h4><dl className="v19-definition-list"><div><dt>Account</dt><dd>{selected.settlementProfile?.maskedAccountNumber ?? selected.bankAccount ?? "—"}</dd></div><div><dt>Bank</dt><dd>{selected.settlementProfile?.bankName ?? "—"}</dd></div><div><dt>IFSC</dt><dd>{selected.settlementProfile?.ifscCode ?? "—"}</dd></div></dl></div>:null}
+        {detailTab === "notes" ? <div className="v19-detail-scroll"><h4>Review Notes</h4><p className="v19-muted">Review notes and approval history are retained by the backend audit trail.</p></div>:null}
+        {pendingStatuses.includes(selected.approvalStatus)?<div className="v19-bottom-actions"><Button className="success-button" onClick={()=>void approve(selected)}>✓ Approve Restaurant</Button><Button className="danger-button" onClick={()=>void reject(selected)}>× Reject Application</Button><Button className="gold-button">↻ Request Changes</Button></div>:null}
+      </aside> : null}
+    </div>
+  </div>;
+}
+
+export function RestaurantsV17() {
+  const { data, loading, error, reload } = useApiResource(async () => {
+    const list = (await restaurantService.list()).map(normalizeRestaurant);
+    return Promise.all(list.map(fetchFullRestaurant));
+  }, [], [] as any[]);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [detailTab, setDetailTab] = useState("overview");
+  const filtered = data.filter((r) => `${r.restaurantName} ${r.location} ${r.cuisine}`.toLowerCase().includes(query.toLowerCase()));
+  async function choose(item:any){setSelected(await fetchFullRestaurant(item));setDetailTab("overview");}
+  return <div className="v19-reference-page"><div className={selected?"v19-split-layout restaurants has-detail":"v19-split-layout restaurants"}>
+    <main className="v19-main-pane"><div className="v19-title-row"><div><h1>Restaurants <span>({data.length})</span></h1><p>Live restaurant profiles from DiniBee</p></div><div className="v19-view-tools"><button className="v19-icon-toggle active">▦</button><button className="v19-icon-toggle">☰</button></div></div>
+      <div className="v19-filter-row restaurant"><FilterInput value={query} onChange={setQuery} placeholder="Search restaurant name…"/><select className="v19-native-select" defaultValue="all" aria-label="Status"><option value="all">All Status</option></select><select className="v19-native-select" defaultValue="all" aria-label="Restaurant type"><option value="all">All Types</option></select><select className="v19-native-select" defaultValue="all" aria-label="Location"><option value="all">All Locations</option></select></div>
+      {error?<div className="page-error panel-card">{error}</div>:null}
+      <div className="v19-restaurants-grid">{filtered.map(r=><button className={selected?.id===r.id?"v19-restaurant-card selected":"v19-restaurant-card"} key={r.id} onClick={()=>void choose(r)}><div className="v19-card-image restaurant"><RestaurantVisual item={r} large/><span className="v19-status-chip">{r.approvalStatus==="APPROVED"?"Active":r.approvalStatus}</span></div><div className="v19-card-copy"><h3>{r.restaurantName}</h3><p className="rating">★ {r.rating || "—"} <small>· {r.cuisine}</small></p><p>⌖ {r.location}</p><div className="v19-restaurant-metrics"><span>🛒 <b>{r.orders}</b><small>Orders Today</small></span><span>₹ <b>{money(r.todaySales)}</b><small>Sales Today</small></span></div></div></button>)}{!loading&&!filtered.length?<div className="v17-empty">No restaurants found.</div>:null}</div>
+    </main>
+    {selected?<aside className="v19-detail-pane restaurant-detail"><button className="v19-close" onClick={()=>setSelected(null)}>×</button><div className="v19-hero restaurant"><RestaurantVisual item={selected} large/></div><div className="v19-identity-row restaurant"><RestaurantVisual item={{...selected,coverImageUrl:selected.logoUrl,imageUrl:selected.logoUrl}}/><div><h2>{selected.restaurantName}</h2><p>{selected.location} · {selected.cuisine}</p><small>{selected.phone}</small></div><StatusBadge status={selected.approvalStatus==="APPROVED"?"ACTIVE":selected.approvalStatus}/></div><nav className="v19-detail-tabs">{["overview","orders","menu","reviews","gallery","settings"].map(tab=><button key={tab} className={detailTab===tab?"active":""} onClick={()=>setDetailTab(tab)}>{tab.charAt(0).toUpperCase()+tab.slice(1)}</button>)}</nav>
+      {detailTab==="overview"?<div className="v19-detail-scroll restaurant-overview"><div className="v19-period-row"><button className="active">Today</button><button>This Week</button><button>This Month</button><span>📅 {new Date().toLocaleDateString("en-IN")}</span></div><div className="v19-kpi-cards"><div><span>🛒</span><b>{selected.orders}</b><small>Total Orders</small></div><div><span>₹</span><b>{money(selected.todaySales)}</b><small>Total Order Amount</small></div><div><span>▣</span><b>{selected.itemsOrdered ?? 0}</b><small>Items Ordered</small></div><div><span>👥</span><b>{selected.uniqueCustomers ?? 0}</b><small>Unique Customers</small></div></div><section className="v19-sales-panel"><div className="v19-section-title"><h4>Sales Overview</h4><span>Revenue</span></div><div className="v19-line-chart"><i/><i/><i/><i/><i/><i/><i/></div></section><section className="v19-recent-orders"><div className="v19-section-title"><h4>Recent Orders (Today)</h4><span>Live API</span></div><div className="v19-mini-table"><div><b>Order ID</b><b>Customer</b><b>Items</b><b>Amount</b><b>Status</b></div><p>No recent order rows returned in restaurant summary.</p></div></section></div>:<div className="v19-detail-scroll"><h4>{detailTab.charAt(0).toUpperCase()+detailTab.slice(1)}</h4><p className="v19-muted">This tab is connected to the selected restaurant context and ready for its module data.</p></div>}
+    </aside>:null}
+  </div></div>;
+}
+
+export function CustomersV17() {
+  const resource = useApiResource(async () => {
+    const payload = await adminApi.customers();
+    return unwrapArray(payload).map(normalizeCustomer);
+  }, [], [] as any[]);
+  const { data, loading, error, reload } = resource;
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [tab, setTab] = useState("overview");
+  const filtered = data.filter((c) => `${c.name} ${c.phone} ${c.email} ${c.location}`.toLowerCase().includes(query.toLowerCase()));
+  const premium = data.filter((c) => c.premium).length;
+  const nonPremium = data.length - premium;
+  const pct = (n:number) => data.length ? Math.round((n / data.length) * 1000) / 10 : 0;
+  const initials=(name:string)=>name.split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
+
+  return <div className="ref-page customers-ref">
+    <div className="ref-page-head"><div><h1>Customers <span>({data.length.toLocaleString("en-IN")})</span></h1><p>All users from DiniBee customer app</p></div><div className="ref-head-actions"><Button variant="outline">⇩ Export</Button><button className="ref-view-btn active">▦</button><button className="ref-view-btn">☰</button></div></div>
+    <div className="ref-customer-summary"><article className="purple"><div className="ref-summary-icon">♛</div><div><small>Premium Customers</small><strong>{premium}</strong><span>{pct(premium)}% of total users</span></div></article><article><div className="ref-summary-icon gray">♟</div><div><small>Non-Premium Customers</small><strong>{nonPremium}</strong><span>{pct(nonPremium)}% of total users</span></div></article></div>
+    <div className="ref-filter-row customers"><FilterInput value={query} onChange={setQuery} placeholder="Search by name, phone, email…"/><select className="ref-select"><option>All Customer Types</option><option>Premium</option><option>Non-Premium</option></select><select className="ref-select"><option>All Status</option><option>Active</option><option>Inactive</option></select><select className="ref-select"><option>All Locations</option></select><select className="ref-select"><option>Newest First</option><option>Oldest First</option></select></div>
+    {error?<div className="page-error panel-card">{error}</div>:null}
+    <div className={selected?"ref-master-detail customer-detail-open":"ref-master-detail"}>
+      <main className="ref-customer-grid">{filtered.map((c)=><article key={c.id} className={selected?.id===c.id?"ref-customer-card selected":"ref-customer-card"}>
+        <div className="ref-customer-card-top">{c.imageUrl?<img src={c.imageUrl} alt=""/>:<div className="ref-avatar">{initials(c.name)}</div>}<div><h3>{c.name}</h3><span className={c.premium?"ref-tag premium":"ref-tag"}>{c.premium?"★ Premium":"Non-Premium"}</span><span className="ref-tag active">Active</span></div></div>
+        <div className="ref-contact"><p>☎ {c.phone}</p><p>✉ {c.email}</p><p>⌖ {c.location}</p><p>▣ Joined {c.joined}</p></div>
+        <div className="ref-card-metrics"><div><b>{c.orders}</b><small>Total Orders</small></div><div><b>{money(c.totalSpent)}</b><small>Total Spent</small></div></div>
+        <button className="ref-card-action" onClick={()=>{setSelected(c);setTab("overview")}}>View Details</button>
+      </article>)}{!loading&&!filtered.length?<div className="v17-empty">No customers found.</div>:null}</main>
+      {selected?<aside className="ref-detail-panel customer-panel"><button className="ref-x" onClick={()=>setSelected(null)}>×</button>
+        <div className="ref-profile-banner">{selected.imageUrl?<img src={selected.imageUrl} alt=""/>:<div className="ref-avatar xl">{initials(selected.name)}</div>}<div><h2>{selected.name} <span className="ref-tag premium">★ Premium</span> <span className="ref-tag active">Active</span></h2><p>Customer ID: #{selected.id.slice(0,10).toUpperCase()}</p><p>Joined on {selected.joined}</p></div></div>
+        <nav className="ref-tabs">{["overview","orders","addresses","wallet","support","activity"].map(t=><button key={t} className={tab===t?"active":""} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</nav>
+        {tab==="overview"?<div className="ref-detail-scroll"><div className="ref-section-title"><h3>Basic Information</h3><button>✎ Edit</button></div><dl className="ref-info-list"><div><dt>♙ Name</dt><dd>{selected.name}</dd></div><div><dt>☎ Phone</dt><dd>{selected.phone}</dd></div><div><dt>✉ Email</dt><dd>{selected.email}</dd></div><div><dt>▣ Date of Birth</dt><dd>—</dd></div><div><dt>⚥ Gender</dt><dd>—</dd></div><div><dt>⌖ Location</dt><dd>{selected.location}</dd></div><div><dt>▣ Member Since</dt><dd>{selected.joined}</dd></div><div><dt>♛ Customer Type</dt><dd><span className="ref-tag premium">Premium Customer</span></dd></div><div><dt>◉ Status</dt><dd><span className="ref-tag active">Active</span></dd></div></dl>
+          <div className="ref-customer-kpis"><div><span>♛</span><b>{selected.orders}</b><small>Total Orders</small></div><div><span>₹</span><b>{money(selected.totalSpent)}</b><small>Total Spent</small></div><div><span>★</span><b>—</b><small>Avg. Rating</small></div><div><span>♥</span><b>—</b><small>Saved Items</small></div></div>
+          <div className="ref-section-title"><h3>Recent Orders</h3><button>View All</button></div><div className="ref-recent-list"><div className="ref-empty-inline">Recent order detail is loaded from the live order modules.</div></div>
+        </div>:<div className="ref-detail-scroll"><h3>{tab[0].toUpperCase()+tab.slice(1)}</h3><p className="ref-muted">Live {tab} data for this customer.</p></div>}
+        <div className="ref-bottom-actions"><button className="danger">⊘ Block User</button><button>➤ Send Notification</button><button>↗ View in App</button></div>
+      </aside>:null}
+    </div>
+  </div>;
+}
+
+export function ReservationsV17() {
+  const { data, loading, error, reload } = useApiResource(() => reservationService.list(), [], [] as ReservationRecord[]);
+  const [selected, setSelected] = useState<ReservationRecord | null>(null);
+  const [query, setQuery] = useState("");
+  const [tab,setTab]=useState("overview");
+  const filtered = data.filter((r) => `${r.bookingNumber} ${r.customerName} ${r.restaurantName}`.toLowerCase().includes(query.toLowerCase()));
+  const confirmed=data.filter(r=>["CONFIRMED","CHECKED_IN","DINING","COMPLETED"].includes(r.status)).length;
+  const pending=data.filter(r=>r.status==="PENDING").length;
+  const cancelled=data.filter(r=>r.status==="CANCELLED").length;
+  return <div className="ref-page bookings-ref">
+    <div className="ref-page-head"><div><h1>Table Bookings</h1><p>All restaurant reservations from DiniBee platform</p></div><div className="ref-head-actions"><button className="ref-date">▣ Oct 1, 2026 - Oct 31, 2026⌄</button><Button variant="outline">⇩ Export</Button></div></div>
+    <nav className="ref-tabs top"><button className="active">All Bookings ({data.length})</button><button>Confirmed ({confirmed})</button><button>Pending ({pending})</button><button>Cancelled ({cancelled})</button></nav>
+    <div className="ref-stat-row"><article className="mint"><span>▣</span><div><small>Total Bookings</small><b>{data.length.toLocaleString("en-IN")}</b><em>↑ live</em></div></article><article className="blue"><span>✓</span><div><small>Confirmed</small><b>{confirmed}</b><em>{data.length?Math.round(confirmed/data.length*100):0}% of total</em></div></article><article className="orange"><span>◷</span><div><small>Pending</small><b>{pending}</b><em>{data.length?Math.round(pending/data.length*100):0}% of total</em></div></article><article className="red"><span>×</span><div><small>Cancelled</small><b>{cancelled}</b><em>{data.length?Math.round(cancelled/data.length*100):0}% of total</em></div></article></div>
+    <div className="ref-filter-row bookings"><select className="ref-select"><option>All Restaurants</option></select><select className="ref-select"><option>All Status</option></select><select className="ref-select"><option>All Party Sizes</option></select><select className="ref-select"><option>All Dates</option></select><FilterInput value={query} onChange={setQuery} placeholder="Search by customer name, phone, booking ID…"/><button className="ref-reset">Reset</button></div>
+    {error?<div className="page-error panel-card">{error}</div>:null}
+    <div className={selected?"ref-master-detail booking-detail-open":"ref-master-detail"}><main className="ref-booking-list">{filtered.map(r=><article key={r.id} className="ref-booking-row">
+      <div className="ref-avatar sm">{r.customerName.slice(0,2).toUpperCase()}</div><div className="ref-booking-customer"><h3>{r.customerName}</h3><small>#{r.bookingNumber}</small><span className="ref-tag premium">★ Premium</span></div><div className="ref-restaurant-cell"><div className="ref-food-thumb">🍽</div><div><b>{r.restaurantName}</b><small>⌖ DiniBee Restaurant</small></div></div><div className="ref-booking-meta"><span>♟ {r.guestCount} People</span><span>▣ {r.date}</span><span>◷ {r.time}</span></div><div className="ref-booking-status"><StatusBadge status={r.status}/><small>Booked on {r.date}</small><button onClick={()=>{setSelected(r);setTab("overview")}}>View Details</button></div><button className="ref-more">⋮</button>
+    </article>)}{!loading&&!filtered.length?<div className="v17-empty">No bookings found.</div>:null}<div className="ref-pagination"><span>Showing 1 to {Math.min(filtered.length,6)} of {filtered.length} bookings</span><div>‹ <b>1</b> 2 3 4 5 … ›</div><span>Bookings per page <b>6⌄</b></span></div></main>
+    {selected?<aside className="ref-detail-panel booking-panel"><button className="ref-x" onClick={()=>setSelected(null)}>×</button><div className="ref-detail-hero-line"><div className="ref-food-thumb lg">🍽</div><div><h2>#{selected.bookingNumber} <StatusBadge status={selected.status}/></h2><p>Booked on {selected.date}</p><b>{selected.restaurantName}</b><small>⌖ DiniBee Restaurant</small></div></div><nav className="ref-tabs">{["overview","customer","history"].map(t=><button key={t} className={tab===t?"active":""} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</nav>
+      <div className="ref-detail-scroll"><div className="ref-section-title"><h3>Booking Information</h3><button>✎ Edit</button></div><dl className="ref-info-list compact"><div><dt>▣ Booking ID</dt><dd>#{selected.bookingNumber}</dd></div><div><dt>▣ Date</dt><dd>{selected.date}</dd></div><div><dt>◷ Time</dt><dd>{selected.time}</dd></div><div><dt>♟ Party Size</dt><dd>{selected.guestCount} People</dd></div><div><dt>▣ Service Type</dt><dd><span className="ref-tag premium">▣ Table Booking</span></dd></div><div><dt>◉ Status</dt><dd><StatusBadge status={selected.status}/></dd></div><div><dt>⌖ Booking Source</dt><dd>DiniBee App</dd></div><div><dt>▣ Booked On</dt><dd>{selected.date}</dd></div></dl>
+      <section className="ref-box"><div className="ref-section-title"><h3>Customer Information</h3><button>✎ Edit</button></div><h4>{selected.customerName} <span className="ref-tag premium">★ Premium</span></h4><p>☎ Customer phone</p><p>✉ Customer email</p></section><section className="ref-box"><h3>Special Requests</h3><p>Customer special requests will appear here when provided.</p></section><section className="ref-box"><h3>Restaurant Information</h3><div className="ref-restaurant-info"><div className="ref-food-thumb">🍽</div><div><b>{selected.restaurantName}</b><p>⌖ DiniBee Restaurant</p></div><button>View Restaurant</button></div></section></div>
+      <div className="ref-bottom-actions"><button>▣ Reschedule</button><button className="danger">⊗ Cancel Booking</button><button>➤ Send Notification</button></div></aside>:null}</div>
+  </div>;
+}
+
+export function TakeawayV17() {
+  const { data, loading, error, reload } = useApiResource(() => takeawayService.list(), [], [] as TakeawayRecord[]);
+  const [selected, setSelected] = useState<TakeawayRecord | null>(null);
+  const [query,setQuery]=useState("");
+  const completed=data.filter(r=>["COMPLETED","PICKED_UP"].includes(r.status)).length;
+  const preparing=data.filter(r=>["PREPARING","READY","CONFIRMED","NEW"].includes(r.status)).length;
+  const cancelled=data.filter(r=>["CANCELLED","REJECTED"].includes(r.status)).length;
+  const rows=data.filter(r=>`${r.orderNumber} ${r.customerName} ${r.restaurantName}`.toLowerCase().includes(query.toLowerCase()));
+  return <div className="ref-page takeaway-ref">
+    <div className="ref-page-head"><div><h1>Take Away Orders</h1><p>Manage all takeaway orders from DiniBee platform</p></div><div className="ref-head-actions"><button className="ref-date">▣ Oct 1, 2026 - Oct 31, 2026⌄</button><Button variant="outline">⇩ Export</Button></div></div>
+    <div className="ref-stat-row"><article className="orange"><span>♨</span><div><small>Total Orders</small><b>{data.length}</b><em>↑ live</em></div></article><article className="mint"><span>✓</span><div><small>Completed</small><b>{completed}</b><em>{data.length?Math.round(completed/data.length*100):0}% of total</em></div></article><article className="orange"><span>◷</span><div><small>Preparing</small><b>{preparing}</b><em>{data.length?Math.round(preparing/data.length*100):0}% of total</em></div></article><article className="purple"><span>×</span><div><small>Cancelled</small><b>{cancelled}</b><em>{data.length?Math.round(cancelled/data.length*100):0}% of total</em></div></article></div>
+    <nav className="ref-tabs top"><button className="active">All Orders ({data.length})</button><button>Completed ({completed})</button><button>Preparing ({preparing})</button><button>Cancelled ({cancelled})</button></nav>
+    <div className="ref-filter-row takeaway"><select className="ref-select"><option>All Restaurants</option></select><select className="ref-select"><option>All Status</option></select><button className="ref-date">▣ Oct 1, 2026 - Oct 31, 2026</button><FilterInput value={query} onChange={setQuery} placeholder="Search by order ID, customer name, phone…"/><button className="ref-reset">Reset</button></div>
+    {error?<div className="page-error panel-card">{error}</div>:null}
+    <div className={selected?"ref-master-detail order-detail-open":"ref-master-detail"}><main><div className="ref-data-table takeaway"><div className="ref-table-head"><span>□</span><span>Order ID</span><span>Customer</span><span>Restaurant</span><span>Items</span><span>Order Time</span><span>Amount</span><span>Status</span><span>Action</span></div>{rows.map(r=><div className="ref-table-row" key={r.id}><span>□</span><b>#{r.orderNumber}</b><div className="ref-person-cell"><div className="ref-avatar xs">{r.customerName.slice(0,1)}</div><span><b>{r.customerName}</b><small>☎ Customer</small><i className="ref-tag premium">★ Premium</i></span></div><div className="ref-restaurant-cell"><div className="ref-food-thumb xs">🍽</div><span><b>{r.restaurantName}</b><small>⌖ DiniBee Restaurant</small></span></div><span>{r.type.replaceAll("_"," ")}<small>Order items</small></span><span>{new Date(r.createdAt).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</span><b>{money(r.amount)}</b><StatusBadge status={r.status}/><div><button onClick={()=>setSelected(r)}>View</button><button className="ref-more">⋮</button></div></div>)}{!loading&&!rows.length?<div className="v17-empty">No takeaway orders found.</div>:null}</div><div className="ref-pagination"><span>Showing 1 to {Math.min(rows.length,8)} of {rows.length} orders</span><div>‹ <b>1</b> 2 3 4 5 … ›</div><span>Rows per page <b>8⌄</b></span></div></main>
+    {selected?<aside className="ref-detail-panel order-panel"><button className="ref-x" onClick={()=>setSelected(null)}>×</button><div className="ref-detail-hero-line"><div className="ref-food-thumb lg">🍽</div><div><h2>#{selected.orderNumber} <StatusBadge status={selected.status}/></h2><p>{new Date(selected.createdAt).toLocaleString("en-IN")}</p></div></div><section className="ref-box"><div className="ref-section-title"><h3>Customer Information</h3><button>✎ Edit</button></div><div className="ref-person-line"><div className="ref-avatar sm">{selected.customerName.slice(0,1)}</div><div><b>{selected.customerName} <span className="ref-tag premium">★ Premium</span></b><p>☎ Customer phone</p><p>✉ Customer email</p></div></div></section><section className="ref-box"><h3>Restaurant Information</h3><div className="ref-restaurant-info"><div className="ref-food-thumb">🍽</div><div><b>{selected.restaurantName}</b><p>⌖ DiniBee Restaurant</p></div><button>View Restaurant</button></div></section><section className="ref-box"><h3>Order Items</h3><div className="ref-order-item"><div className="ref-food-thumb xs">🍽</div><span><b>Order items</b><small>{selected.type.replaceAll("_"," ")}</small></span><b>{money(selected.amount)}</b></div><div className="ref-total-line"><span>Total Amount</span><b>{money(selected.amount)}</b></div></section><section className="ref-box"><h3>Order Information</h3><dl className="ref-info-list compact"><div><dt>Order ID</dt><dd>#{selected.orderNumber}</dd></div><div><dt>Order Type</dt><dd><span className="ref-tag orange">Take Away</span></dd></div><div><dt>Order Time</dt><dd>{new Date(selected.createdAt).toLocaleString("en-IN")}</dd></div><div><dt>Status</dt><dd><StatusBadge status={selected.status}/></dd></div><div><dt>Payment Method</dt><dd>{selected.paymentStatus}</dd></div></dl></section><div className="ref-bottom-actions"><button>▣ Print Bill</button><button className="danger">↶ Refund Order</button><button>➤ Send Notification</button></div></aside>:null}</div>
+  </div>;
+}
+
+export function DiniTicketV17() {
+  const { data, loading, error, reload } = useApiResource(() => diniTicketService.list(), [], [] as DiniTicketRecord[]);
+  const [selected, setSelected] = useState<DiniTicketRecord | null>(null);
+  const [query,setQuery]=useState("");
+  const completed=data.filter(r=>["COMPLETED","COLLECTED"].includes(r.queueStatus)).length;
+  const upcoming=data.filter(r=>["WAITING","PREPARING","READY","CALLED"].includes(r.queueStatus)).length;
+  const cancelled=data.filter(r=>r.queueStatus==="CANCELLED").length;
+  const rows=data.filter(r=>`${r.tokenNumber} ${r.customerName} ${r.restaurantName} ${r.orderNumber}`.toLowerCase().includes(query.toLowerCase()));
+  return <div className="ref-page diniticket-ref">
+    <div className="ref-page-head"><div><h1>DiniTicket Orders</h1><p>Manage all DiniTicket orders from DiniBee platform</p></div><div className="ref-head-actions"><button className="ref-date">▣ Oct 1, 2026 - Oct 31, 2026⌄</button><Button variant="outline">⇩ Export</Button></div></div>
+    <div className="ref-stat-row"><article className="purple"><span>◈</span><div><small>Total Tickets</small><b>{data.length}</b><em>↑ live</em></div></article><article className="mint"><span>✓</span><div><small>Completed</small><b>{completed}</b><em>{data.length?Math.round(completed/data.length*100):0}% of total</em></div></article><article className="orange"><span>◷</span><div><small>Upcoming</small><b>{upcoming}</b><em>{data.length?Math.round(upcoming/data.length*100):0}% of total</em></div></article><article className="red"><span>×</span><div><small>Cancelled</small><b>{cancelled}</b><em>{data.length?Math.round(cancelled/data.length*100):0}% of total</em></div></article></div>
+    <nav className="ref-tabs top"><button className="active">All Tickets ({data.length})</button><button>Upcoming ({upcoming})</button><button>Completed ({completed})</button><button>Cancelled ({cancelled})</button></nav>
+    <div className="ref-filter-row ticket"><select className="ref-select"><option>All Restaurants</option></select><select className="ref-select"><option>All Event Types</option></select><select className="ref-select"><option>All Status</option></select><button className="ref-date">▣ Oct 1, 2026 - Oct 31, 2026</button><FilterInput value={query} onChange={setQuery} placeholder="Search by ticket ID, customer name, event…"/><button className="ref-reset">Reset</button></div>
+    {error?<div className="page-error panel-card">{error}</div>:null}
+    <div className={selected?"ref-master-detail ticket-detail-open":"ref-master-detail"}><main><div className="ref-ticket-list">{rows.map(r=><article key={r.id} className="ref-ticket-row"><div className="ref-event-thumb">🎟</div><div className="ref-ticket-event"><h3>DiniTicket Order</h3><small>⌖ {r.restaurantName}</small><span className="ref-tag orange">DiniTicket</span></div><div className="ref-person-cell"><div className="ref-avatar xs">{r.customerName.slice(0,1)}</div><span><b>{r.customerName}</b><small>Customer</small><i className="ref-tag premium">★ Premium</i></span></div><div className="ref-ticket-time"><span>▣ {new Date(r.createdAt).toLocaleDateString("en-IN")}</span><span>◷ {new Date(r.createdAt).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</span></div><div className="ref-ticket-price"><span>{r.orderNumber || r.tokenNumber}</span><b>{money(r.amount)}</b></div><StatusBadge status={r.queueStatus}/><button onClick={()=>setSelected(r)}>View</button><button className="ref-more">⋮</button></article>)}{!loading&&!rows.length?<div className="v17-empty">No DiniTicket orders found.</div>:null}</div><div className="ref-pagination"><span>Showing 1 to {Math.min(rows.length,8)} of {rows.length} ticket orders</span><div>‹ <b>1</b> 2 3 4 5 … ›</div><span>Rows per page <b>8⌄</b></span></div></main>
+    {selected?<aside className="ref-detail-panel ticket-panel"><button className="ref-x" onClick={()=>setSelected(null)}>×</button><div className="ref-detail-hero-line"><div className="ref-event-thumb lg">🎟</div><div><h2>DiniTicket Order <StatusBadge status={selected.queueStatus}/></h2><b>#{selected.tokenNumber}</b><p>{new Date(selected.createdAt).toLocaleString("en-IN")}</p></div></div><section className="ref-box"><h3>Event Information</h3><dl className="ref-info-list compact"><div><dt>▣ Event Name</dt><dd>DiniTicket Order</dd></div><div><dt>▣ Restaurant</dt><dd>{selected.restaurantName}</dd></div><div><dt>◈ Event Type</dt><dd>DiniTicket</dd></div><div><dt>▣ Event Date</dt><dd>{new Date(selected.createdAt).toLocaleDateString("en-IN")}</dd></div><div><dt>◷ Event Time</dt><dd>{new Date(selected.createdAt).toLocaleTimeString("en-IN")}</dd></div></dl></section><section className="ref-box"><h3>Customer Information</h3><div className="ref-person-line"><div className="ref-avatar sm">{selected.customerName.slice(0,1)}</div><div><b>{selected.customerName} <span className="ref-tag premium">★ Premium</span></b><p>Customer</p></div></div></section><section className="ref-box"><h3>Ticket Information</h3><dl className="ref-info-list compact"><div><dt>◉ Ticket ID</dt><dd>#{selected.tokenNumber}</dd></div><div><dt>▣ Order ID</dt><dd>{selected.orderNumber}</dd></div><div><dt>₹ Total Amount</dt><dd>{money(selected.amount)}</dd></div><div><dt>◉ Status</dt><dd><StatusBadge status={selected.queueStatus}/></dd></div><div><dt>▣ Booked On</dt><dd>{new Date(selected.createdAt).toLocaleString("en-IN")}</dd></div><div><dt>₹ Payment</dt><dd>{selected.paymentStatus}</dd></div></dl></section><section className="ref-box"><h3>Attendee Details</h3><p>1&nbsp;&nbsp; {selected.customerName}</p></section><div className="ref-bottom-actions"><button>➤ Send Ticket</button><button className="danger">↶ Refund Ticket</button><button>⇩ Download</button></div></aside>:null}</div>
+  </div>;
+}
+
+export function TransactionsV17() {
+  const { data, loading, error, reload } = useApiResource(() => paymentService.listTransactions(), [], [] as PaymentRecord[]);
+  const [selected, setSelected] = useState<PaymentRecord | null>(null);
+  const [query,setQuery]=useState("");
+  const total = data.reduce((sum,r)=>sum+r.gatewayPaidAmount,0);
+  const dine = data.filter(r=>["DINE_IN","GROUP_BOOKING","CORPORATE_BOOKING"].includes(r.paymentType)).reduce((s,r)=>s+r.gatewayPaidAmount,0);
+  const takeaway = data.filter(r=>r.paymentType==="TAKEAWAY").reduce((s,r)=>s+r.gatewayPaidAmount,0);
+  const dini = data.filter(r=>r.paymentType==="DINITICKET").reduce((s,r)=>s+r.gatewayPaidAmount,0);
+  const rows=data.filter(r=>`${r.referenceId} ${r.customerName} ${r.restaurantName} ${r.transactionId}`.toLowerCase().includes(query.toLowerCase()));
+  const methods=Array.from(new Set(data.map(r=>r.paymentMethod||"Unknown")));
+  return <div className="ref-page payments-ref">
+    <div className="ref-page-head"><div><h1>Payments</h1><p>All payment transactions from DiniBee platform</p></div><div className="ref-head-actions"><button className="ref-date">▣ Oct 1, 2026 - Oct 31, 2026⌄</button><Button variant="outline">⇩ Export</Button></div></div>
+    <div className="ref-stat-row"><article className="mint"><span>₹</span><div><small>Total Revenue</small><b>{money(total)}</b><em>{data.length} transactions</em></div></article><article className="blue"><span>▣</span><div><small>Table Booking</small><b>{money(dine)}</b><em>{data.filter(r=>["DINE_IN","GROUP_BOOKING","CORPORATE_BOOKING"].includes(r.paymentType)).length} transactions</em></div></article><article className="orange"><span>♨</span><div><small>Take Away</small><b>{money(takeaway)}</b><em>{data.filter(r=>r.paymentType==="TAKEAWAY").length} transactions</em></div></article><article className="purple"><span>◈</span><div><small>DiniTicket</small><b>{money(dini)}</b><em>{data.filter(r=>r.paymentType==="DINITICKET").length} transactions</em></div></article></div>
+    <div className="ref-payment-charts"><article><div className="ref-section-title"><h3>Revenue Overview</h3><div><span>● Table Booking</span><span>● Take Away</span><span>● DiniTicket</span></div></div><div className="ref-line-chart"><svg viewBox="0 0 700 170" preserveAspectRatio="none"><polyline points="0,135 80,112 160,124 240,103 320,106 400,91 480,96 560,73 640,86 700,69"/><polyline points="0,148 80,134 160,143 240,128 320,119 400,121 480,101 560,119 640,99 700,112"/><polyline points="0,118 80,94 160,105 240,86 320,87 400,73 480,48 560,68 640,44 700,64"/></svg><div className="ref-chart-labels"><span>Oct 1</span><span>Oct 5</span><span>Oct 10</span><span>Oct 15</span><span>Oct 20</span><span>Oct 25</span><span>Oct 31</span></div></div></article><article><h3>Payment Methods</h3><div className="ref-donut-wrap"><div className="ref-donut"><b>{money(total/100000)}L</b><small>Total</small></div><div className="ref-methods">{methods.slice(0,5).map((m,i)=><div key={m}><span><i className={`dot d${i}`}/>{m}</span><b>{money(data.filter(r=>r.paymentMethod===m).reduce((a,b)=>a+b.gatewayPaidAmount,0))}</b></div>)}</div></div></article></div>
+    <nav className="ref-tabs top"><button className="active">All Payments ({data.length})</button><button>Table Bookings</button><button>Take Away</button><button>DiniTickets</button><button>Refunds</button></nav>
+    <div className="ref-filter-row payment"><select className="ref-select"><option>All Services</option></select><select className="ref-select"><option>All Payment Methods</option></select><select className="ref-select"><option>All Status</option></select><select className="ref-select"><option>All Restaurants</option></select><FilterInput value={query} onChange={setQuery} placeholder="Search by order ID, customer, restaurant…"/><button className="ref-reset">Reset</button></div>
+    {error?<div className="page-error panel-card">{error}</div>:null}
+    <div className={selected?"ref-master-detail payment-detail-open":"ref-master-detail"}><main><div className="ref-data-table payment"><div className="ref-table-head"><span>□</span><span>Order ID</span><span>Date & Time</span><span>Service Type</span><span>Customer</span><span>Restaurant</span><span>Payment Method</span><span>Amount</span><span>Status</span><span>Action</span></div>{rows.map(r=><div className="ref-table-row" key={r.id}><span>□</span><b>#{r.referenceId}</b><span>{r.date}</span><span><i className="ref-tag blue">{r.paymentType.replaceAll("_"," ")}</i></span><span>{r.customerName}</span><span>{r.restaurantName}</span><span>{r.paymentMethod}</span><b>{money(r.gatewayPaidAmount)}</b><StatusBadge status={r.status}/><button onClick={()=>setSelected(r)}>View</button></div>)}{!loading&&!rows.length?<div className="v17-empty">No transactions found.</div>:null}</div><div className="ref-pagination"><span>Showing 1 to {Math.min(rows.length,8)} of {rows.length} transactions</span><div>‹ <b>1</b> 2 3 4 5 … ›</div><span>Rows per page <b>8⌄</b></span></div></main>
+    {selected?<aside className="ref-detail-panel payment-panel"><button className="ref-x" onClick={()=>setSelected(null)}>×</button><div className="ref-detail-hero-line"><div className="ref-food-thumb lg">🍽</div><div><h2>Order #{selected.referenceId} <StatusBadge status={selected.status}/></h2><p>{selected.date}</p><b>{selected.restaurantName}</b><span className="ref-tag blue">{selected.paymentType.replaceAll("_"," ")}</span></div></div><section className="ref-box"><h3>Payment Information</h3><dl className="ref-info-list compact"><div><dt>Transaction ID</dt><dd>{selected.transactionId}</dd></div><div><dt>Payment Method</dt><dd>{selected.paymentMethod}</dd></div><div><dt>Amount</dt><dd>{money(selected.gatewayPaidAmount)}</dd></div><div><dt>Payment Status</dt><dd><StatusBadge status={selected.status}/></dd></div><div><dt>Paid At</dt><dd>{selected.date}</dd></div><div><dt>Gateway</dt><dd>Razorpay</dd></div></dl></section><section className="ref-box"><h3>Order Information</h3><dl className="ref-info-list compact"><div><dt>Order ID</dt><dd>#{selected.referenceId}</dd></div><div><dt>Service Type</dt><dd>{selected.paymentType.replaceAll("_"," ")}</dd></div><div><dt>Restaurant</dt><dd>{selected.restaurantName}</dd></div><div><dt>Total Amount</dt><dd>{money(selected.gatewayPaidAmount)}</dd></div></dl></section><section className="ref-box"><h3>Customer Information</h3><div className="ref-person-line"><div className="ref-avatar sm">{selected.customerName.slice(0,1)}</div><div><b>{selected.customerName} <span className="ref-tag premium">★ Premium</span></b><p>Customer account</p></div></div></section><section className="ref-box"><h3>Payment Timeline</h3><div className="ref-timeline"><p>● Payment Initiated <span>{selected.date}</span></p><p>● Payment Successful <span>{selected.date}</span></p><p>● Order Confirmed <span>{selected.date}</span></p></div></section><div className="ref-bottom-actions"><button>➤ Send Receipt</button><button className="danger">↶ Refund Payment</button><button>↗ View in App</button></div></aside>:null}</div>
+  </div>;
+}

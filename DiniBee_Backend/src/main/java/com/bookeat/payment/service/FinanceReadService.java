@@ -1,0 +1,12 @@
+package com.bookeat.payment.service;
+import com.bookeat.payment.dto.PaymentResponses;import com.bookeat.payment.repository.*;import com.bookeat.payment.mapper.PaymentMapper;import com.bookeat.restaurant.service.RestaurantAccessService;import com.bookeat.commerce.service.CommerceAccess;import com.bookeat.common.response.PageResponse;import com.bookeat.exception.*;import lombok.RequiredArgsConstructor;import org.springframework.stereotype.Service;import org.springframework.transaction.annotation.Transactional;import org.springframework.data.domain.*;import java.util.*;
+@Service @RequiredArgsConstructor @Transactional(readOnly=true) public class FinanceReadService {
+ private final PaymentRepository payments;private final RefundRepository refunds;private final SettlementRepository settlements;private final CommissionRuleRepository commissions;private final PaymentMapper mapper;private final RestaurantAccessService owners;private final CommerceAccess access;
+ public PageResponse<PaymentResponses.View> payments(UUID actor,UUID restaurant,int page,int size){if(restaurant!=null)owners.getOwnedRestaurant(actor,restaurant);return PageResponse.from((restaurant==null?payments.findAll(page(page,size)):payments.findByRestaurantId(restaurant,page(page,size))).map(mapper::view));}
+ public PaymentResponses.View payment(UUID id){return mapper.view(payments.findById(id).orElseThrow(()->new ApiException(ErrorCode.RESOURCE_NOT_FOUND)));}
+ public PageResponse<PaymentResponses.RefundView> refunds(int page,int size){return PageResponse.from(refunds.findAll(page(page,size)).map(mapper::refund));}
+ public List<PaymentResponses.RefundView> ownRefunds(UUID actor,UUID payment){payments.findById(payment).filter(p->p.getCustomerId().equals(access.customer(actor))).orElseThrow(()->new ApiException(ErrorCode.RESOURCE_NOT_FOUND));return refunds.findByPaymentId(payment).stream().map(mapper::refund).toList();}
+ public PageResponse<PaymentResponses.SettlementView> settlements(UUID actor,UUID restaurant,int page,int size){if(restaurant!=null)owners.getOwnedRestaurant(actor,restaurant);return PageResponse.from((restaurant==null?settlements.findAll(page(page,size)):settlements.findByRestaurantId(restaurant,page(page,size))).map(mapper::settlement));}
+ public List<PaymentResponses.CommissionView> commissions(){return commissions.findAll().stream().map(mapper::commission).toList();}
+ private Pageable page(int p,int n){return PageRequest.of(p,n,Sort.by(Sort.Direction.DESC,"createdAt","id"));}
+}

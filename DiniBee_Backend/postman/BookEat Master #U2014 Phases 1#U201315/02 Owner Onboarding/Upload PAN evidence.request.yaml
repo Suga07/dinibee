@@ -1,0 +1,30 @@
+$kind: http-request
+description: Choose a PDF/PNG/JPEG file <=5 MiB for the file part. metadata must have application/json content type. This is private storage, not a URL upload. Business document numbers must match saved business details.
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/documents"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: metadata
+      value: '{"version": {{restaurantVersion}}, "documentType": "PAN", "documentNumber": "ABCDE1234F"}'
+      contentType: application/json
+    - type: file
+      key: file
+      src: []
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", () => pm.response.to.have.status(200));
+      const result = pm.response.json();
+      if (result.success && result.data && result.data.id && result.data.version !== undefined) {
+        pm.environment.set("restaurantId", result.data.id);
+        pm.environment.set("restaurantVersion", String(result.data.version));
+        if (result.data.documents) result.data.documents.forEach(d => pm.environment.set("documentId" + d.documentType, d.id));
+      }
+    language: text/javascript
+order: 21000

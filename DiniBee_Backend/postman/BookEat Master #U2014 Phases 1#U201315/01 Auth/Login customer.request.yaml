@@ -1,0 +1,28 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{customerEmail}}",
+      "password": "{{password}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", function () { pm.response.to.have.status(200); });
+      const result = pm.response.json();
+      pm.test("Response envelope", function () { pm.expect(result).to.have.property("success"); });
+      if (result.success && result.data) {
+        pm.environment.set("customerToken", result.data.accessToken);
+        pm.environment.set("customerRefreshToken", result.data.refreshToken);
+        pm.environment.set("customerUserId", result.data.user.id);
+      }
+    language: text/javascript
+order: 4000

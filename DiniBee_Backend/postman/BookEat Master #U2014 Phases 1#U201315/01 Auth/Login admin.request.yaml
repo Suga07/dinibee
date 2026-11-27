@@ -1,0 +1,28 @@
+$kind: http-request
+description: Admin requires explicit first-admin bootstrap.
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{adminEmail}}",
+      "password": "{{adminPassword}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 200", function () { pm.response.to.have.status(200); });
+      const result = pm.response.json();
+      pm.test("Response envelope", function () { pm.expect(result).to.have.property("success"); });
+      if (result.success && result.data) {
+        pm.environment.set("adminToken", result.data.accessToken);
+        pm.environment.set("adminRefreshToken", result.data.refreshToken);
+        pm.environment.set("adminUserId", result.data.user.id);
+      }
+    language: text/javascript
+order: 6000

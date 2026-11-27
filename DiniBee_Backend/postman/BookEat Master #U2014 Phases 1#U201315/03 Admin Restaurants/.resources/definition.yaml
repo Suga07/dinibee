@@ -1,0 +1,3 @@
+$kind: collection
+description: Requires seeded admin permissions, completed owner submission and document/settlement verification.
+order: 3000

@@ -1,0 +1,36 @@
+$kind: http-request
+name: "Owner: Issue walk-in ticket for an existing customer"
+description: |-
+  Owner only; Idempotency-Key required. Supports venues with remote join disabled. Does not create customer accounts.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+  Idempotency key is initialized once. Keep it for exact retries; clear it for a new booking/order intent.
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/dinitickets"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{walkInKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "customerId": "{{customerId}}",
+      "guestCount": 2
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("walkInKey")) pm.environment.set("walkInKey", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.id){pm.environment.set("diniTicketId",d.id);pm.environment.set("ticketVersion",d.version);}
+      }
+    language: text/javascript
+order: 5000

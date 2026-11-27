@@ -1,0 +1,21 @@
+$kind: http-request
+description: |-
+  after is an exclusive event cursor. At most 100 events; no other customer's ticket data.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/customer/dinitickets/events?after={{eventCursor}}"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if (Array.isArray(d) && d.length) pm.environment.set("eventCursor", d[d.length - 1].id);
+      }
+    language: text/javascript
+order: 14000

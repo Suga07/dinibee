@@ -1,0 +1,43 @@
+$kind: http-request
+description: |-
+  Idempotency-Key required. One table per group; memberLimit cannot exceed guestCount.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+  Idempotency key is initialized once. Keep it for exact retries; clear it for a new booking/order intent.
+url: "{{baseUrl}}/customer/group-bookings"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{groupKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "reservation": {
+        "restaurantId": "{{restaurantId}}",
+        "tableId": "{{tableId}}",
+        "startsAt": "{{startsAt}}",
+        "guestCount": 2,
+        "specialRequest": null
+      },
+      "displayName": "Host",
+      "memberLimit": 2,
+      "paymentMode": "SPLIT_EQUAL"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("groupKey")) pm.environment.set("groupKey", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.id){pm.environment.set("groupBookingId",d.id);pm.environment.set("groupVersion",d.version);pm.environment.set("reservationId",d.reservation.id);pm.environment.set("reservationVersion",d.reservation.version);const guest=d.members.find(m=>!m.host && m.status==="JOINED");if(guest)pm.environment.set("memberId",guest.id);}
+      }
+    language: text/javascript
+order: 1000

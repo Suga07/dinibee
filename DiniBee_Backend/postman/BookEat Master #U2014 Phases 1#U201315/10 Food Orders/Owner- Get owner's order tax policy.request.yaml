@@ -1,0 +1,22 @@
+$kind: http-request
+name: "Owner: Get owner's order tax policy"
+description: |-
+  INR prices exclude this percentage tax. Default 0 until configured. Existing orders retain their snapshots.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/commerce-policy"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.restaurantVersion!==undefined)pm.environment.set("restaurantVersion",d.restaurantVersion);
+      }
+    language: text/javascript
+order: 7000

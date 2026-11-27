@@ -1,0 +1,46 @@
+$kind: http-request
+description: |-
+  Idempotency-Key required. Enabled TAKEAWAY service, pickup window, cash acceptance and menu flags required. UNPAID until later payment workflow.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+  Idempotency key is initialized once. Keep it for exact retries; clear it for a new booking/order intent.
+url: "{{baseUrl}}/customer/takeaway/orders"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{takeawayKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "restaurantId": "{{restaurantId}}",
+      "pickupTime": "{{pickupTime}}",
+      "onTheWay": false,
+      "items": [
+        {
+          "menuItemId": "{{menuItemId}}",
+          "variantId": null,
+          "addonIds": [],
+          "quantity": 1,
+          "notes": null
+        }
+      ],
+      "specialInstructions": null
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("takeawayKey")) pm.environment.set("takeawayKey", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.id){pm.environment.set("takeawayId",d.id);pm.environment.set("takeawayVersion",d.version);pm.environment.set("orderId",d.order.id);pm.environment.set("orderVersion",d.order.version);if(d.pickupCode)pm.environment.set("pickupCode",d.pickupCode);}
+      }
+    language: text/javascript
+order: 1000

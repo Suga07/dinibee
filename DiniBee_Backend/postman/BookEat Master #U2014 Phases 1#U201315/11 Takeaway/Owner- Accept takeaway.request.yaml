@@ -1,0 +1,31 @@
+$kind: http-request
+name: "Owner: Accept takeaway"
+description: |-
+  Requires takeaway version and reason; keeps food order state synchronized.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/owner/restaurants/{{restaurantId}}/takeaway/orders/{{takeawayId}}/accept"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "version": {{takeawayVersion}},
+      "reason": "Requested action"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.id){pm.environment.set("takeawayId",d.id);pm.environment.set("takeawayVersion",d.version);pm.environment.set("orderId",d.order.id);pm.environment.set("orderVersion",d.order.version);if(d.pickupCode)pm.environment.set("pickupCode",d.pickupCode);}
+      }
+    language: text/javascript
+order: 10000

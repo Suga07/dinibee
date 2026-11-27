@@ -1,0 +1,139 @@
+{
+  "note": "Postman variable templates. Replace IDs, dates and versions from actual responses; monetary values are JSON numbers. Action versions refer to the mutated resource. Corporate edit/cancel uses reservationVersion.",
+  "requests": {
+    "BookingRequests.Create": {
+      "restaurantId": "{{restaurantId}}",
+      "tableId": "{{tableId}}",
+      "startsAt": "{{startsAt}}",
+      "guestCount": 2,
+      "specialRequest": null
+    },
+    "BookingRequests.Change": {
+      "version": "{{reservationVersion}}",
+      "tableId": "{{tableId}}",
+      "startsAt": "{{startsAt}}",
+      "guestCount": 2,
+      "specialRequest": null
+    },
+    "BookingRequests.Group": {
+      "reservation": {
+        "restaurantId": "{{restaurantId}}",
+        "tableId": "{{tableId}}",
+        "startsAt": "{{startsAt}}",
+        "guestCount": 2,
+        "specialRequest": null
+      },
+      "displayName": "Host",
+      "memberLimit": 2,
+      "paymentMode": "SPLIT_EQUAL"
+    },
+    "BookingRequests.Join": {
+      "displayName": "Guest"
+    },
+    "BookingRequests.Corporate": {
+      "reservation": {
+        "restaurantId": "{{restaurantId}}",
+        "tableId": "{{tableId}}",
+        "startsAt": "{{startsAt}}",
+        "guestCount": 2,
+        "specialRequest": null
+      },
+      "corporateAccountId": null,
+      "account": {
+        "companyName": "Example Company",
+        "gstNumber": null,
+        "billingAddress": "Example billing address",
+        "contactPersonName": "Organizer",
+        "contactEmail": "{{customerEmail}}",
+        "contactPhone": "+919999999999"
+      },
+      "budgetLimit": 5000.0,
+      "billingType": "COMPANY",
+      "recurrenceType": "NONE",
+      "occurrences": 1,
+      "interval": 1,
+      "invoiceRequired": true
+    },
+    "BookingRequests.CorporateChange": {
+      "reservation": {
+        "version": "{{reservationVersion}}",
+        "tableId": "{{tableId}}",
+        "startsAt": "{{startsAt}}",
+        "guestCount": 2,
+        "specialRequest": null
+      },
+      "budgetLimit": 5000.0,
+      "billingType": "COMPANY",
+      "invoiceRequired": true
+    },
+    "BookingRequests.Guest": {
+      "name": "Invited guest",
+      "email": "{{guestEmail}}",
+      "phone": null,
+      "employeeCode": null
+    },
+    "OrderRequests.Create": {
+      "restaurantId": "{{restaurantId}}",
+      "orderType": "DINE_IN_PREORDER",
+      "reservationId": "{{reservationId}}",
+      "diniTicketId": null,
+      "items": [
+        {
+          "menuItemId": "{{menuItemId}}",
+          "variantId": null,
+          "addonIds": [],
+          "quantity": 1,
+          "notes": null
+        }
+      ],
+      "specialInstructions": null
+    },
+    "OrderRequests.Takeaway": {
+      "restaurantId": "{{restaurantId}}",
+      "pickupTime": "{{pickupTime}}",
+      "onTheWay": false,
+      "items": [
+        {
+          "menuItemId": "{{menuItemId}}",
+          "variantId": null,
+          "addonIds": [],
+          "quantity": 1,
+          "notes": null
+        }
+      ],
+      "specialInstructions": null
+    },
+    "OrderRequests.Collect": {
+      "version": "{{takeawayVersion}}",
+      "pickupCode": "{{pickupCode}}"
+    },
+    "OrderRequests.Location": {
+      "consent": true,
+      "latitude": 12.9716,
+      "longitude": 77.5946
+    },
+    "TicketRequests.Create": {
+      "restaurantId": "{{restaurantId}}",
+      "guestCount": 2
+    },
+    "TicketRequests.Seat": {
+      "version": "{{ticketVersion}}",
+      "tableId": "{{tableId}}",
+      "reason": "Party seated"
+    },
+    "Cuisines": {
+      "restaurantVersion": "{{restaurantVersion}}",
+      "cuisines": [
+        "Indian"
+      ]
+    },
+    "Policy": {
+      "restaurantVersion": "{{restaurantVersion}}",
+      "taxPercent": 5.0
+    },
+    "WalkIn": {
+      "customerId": "{{customerId}}",
+      "guestCount": 2
+    }
+  }
+}

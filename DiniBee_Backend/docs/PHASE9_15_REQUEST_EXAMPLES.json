@@ -1,0 +1,1622 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/reservations/{id}/check-in/gps",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.dining.dto.DiningRequests.Gps",
+    "key": false,
+    "extra": "",
+    "summary": "Check in by GPS",
+    "folder": "13",
+    "created": false,
+    "example": {
+      "version": "{{reservationVersion}}",
+      "consent": true,
+      "latitude": 13.0,
+      "longitude": 80.0
+    },
+    "postmanUrl": "{{baseUrl}}/customer/reservations/{{reservationId}}/check-in/gps"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/reservations/{id}/check-in/qr",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.dining.dto.DiningRequests.Qr",
+    "key": false,
+    "extra": "",
+    "summary": "Check in by QR",
+    "folder": "13",
+    "created": false,
+    "example": {
+      "version": "{{reservationVersion}}",
+      "token": "{{checkinToken}}"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/reservations/{{reservationId}}/check-in/qr"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/reservations/{id}/manual-check-in",
+    "permission": "hasRole('OWNER') and hasAuthority('DINING_MANAGE')",
+    "body": "com.bookeat.dining.dto.DiningRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Record manual reservation check-in",
+    "folder": "13",
+    "created": false,
+    "example": {
+      "version": "{{reservationVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/reservations/{{reservationId}}/manual-check-in"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/reservations/{id}/check-in-token",
+    "permission": "hasRole('OWNER') and hasAuthority('DINING_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Issue a five-minute single-use check-in QR token",
+    "folder": "13",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/reservations/{{reservationId}}/check-in-token"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/dining-sessions/current",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load current dining sessions",
+    "folder": "13",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/dining-sessions/current"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/dining-sessions/{id}",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load own dining session",
+    "folder": "13",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/dining-sessions/{{diningSessionId}}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/dining-sessions",
+    "permission": "hasRole('OWNER') and hasAuthority('DINING_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List restaurant dining sessions",
+    "folder": "13",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/dining-sessions?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/dining-sessions/{id}/start",
+    "permission": "hasRole('OWNER') and hasAuthority('DINING_MANAGE')",
+    "body": "com.bookeat.dining.dto.DiningRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Dining start",
+    "folder": "13",
+    "created": false,
+    "example": {
+      "version": "{{diningVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/dining-sessions/{{diningSessionId}}/start"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/dining-sessions/{id}/request-payment",
+    "permission": "hasRole('OWNER') and hasAuthority('DINING_MANAGE')",
+    "body": "com.bookeat.dining.dto.DiningRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Dining request-payment",
+    "folder": "13",
+    "created": false,
+    "example": {
+      "version": "{{diningVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/dining-sessions/{{diningSessionId}}/request-payment"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/dining-sessions/{id}/checkout",
+    "permission": "hasRole('OWNER') and hasAuthority('DINING_MANAGE')",
+    "body": "com.bookeat.dining.dto.DiningRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Dining checkout",
+    "folder": "13",
+    "created": false,
+    "example": {
+      "version": "{{diningVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/dining-sessions/{{diningSessionId}}/checkout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/payments/create-order",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Create",
+    "key": true,
+    "extra": "",
+    "summary": "Create server-priced payment intent and gateway order",
+    "folder": "14",
+    "created": true,
+    "example": {
+      "referenceType": "RESERVATION",
+      "referenceId": "{{reservationId}}",
+      "gateway": "ZOHO",
+      "couponCode": null
+    },
+    "postmanUrl": "{{baseUrl}}/customer/payments/create-order"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/payments/verify",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Verify",
+    "key": false,
+    "extra": "",
+    "summary": "Verify signature and captured provider payment",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "paymentId": "{{paymentId}}",
+      "gatewayPaymentId": "{{gatewayPaymentId}}",
+      "signature": "{{paymentSignature}}"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/payments/verify"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/payments",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List own payments",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/payments?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/payments/{id}",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load own payment state",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/payments/{{paymentId}}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/customer/payments/{id}/cancel-cash",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Cancel an unconfirmed cash payment intent",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "version": "{{paymentVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/payments/{{paymentId}}/cancel-cash"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/payments",
+    "permission": "hasRole('OWNER') and hasAuthority('OWNER_PAYMENT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List owned restaurant payments",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/payments?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/payments/{id}/confirm-cash",
+    "permission": "hasRole('OWNER') and hasAuthority('OWNER_PAYMENT_MANAGE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Confirm cash actually received from customer",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "version": "{{paymentVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/payments/{{paymentId}}/confirm-cash"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/refunds",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.RefundRequest",
+    "key": true,
+    "extra": "",
+    "summary": "Request bounded refund for own payment",
+    "folder": "14",
+    "created": true,
+    "example": {
+      "paymentId": "{{paymentId}}",
+      "amount": 10,
+      "reason": "Requested refund after reviewing the completed service"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/refunds"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/payments/{id}/refunds",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "List own payment refunds",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/payments/{{paymentId}}/refunds"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/payments",
+    "permission": "hasAuthority('PAYMENT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "Admin payment ledger",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/payments?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/payments/{id}",
+    "permission": "hasAuthority('PAYMENT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Admin payment detail",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/payments/{{paymentId}}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payments/{id}/reconcile",
+    "permission": "hasAuthority('SETTLEMENT_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(required=false) @Pattern(regexp=\"[0-9]{1,32}\") String gatewaySessionId",
+    "summary": "Reconcile Zoho session and captured payment without recreating it",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/payments/{{paymentId}}/reconcile?gatewaySessionId={{gatewaySessionId}}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/refunds",
+    "permission": "hasAuthority('REFUND_APPROVE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List refund requests",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/refunds?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/refunds/{id}/approve",
+    "permission": "hasAuthority('REFUND_APPROVE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Refund approve",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "version": "{{refundVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/refunds/{{refundId}}/approve"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/refunds/{id}/reject",
+    "permission": "hasAuthority('REFUND_APPROVE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Refund reject",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "version": "{{refundVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/refunds/{{refundId}}/reject"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/refunds/{id}/process",
+    "permission": "hasAuthority('REFUND_APPROVE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Dispatch an approved refund once",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/refunds/{{refundId}}/process"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/refunds/{id}/reconcile",
+    "permission": "hasAuthority('REFUND_APPROVE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam @Pattern(regexp=\"[0-9]{1,32}\") String gatewayRefundId",
+    "summary": "Reconcile refund using authenticated provider lookup",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/refunds/{{refundId}}/reconcile?gatewayRefundId={{gatewayRefundId}}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/refunds/{id}/confirm-cash",
+    "permission": "hasRole('OWNER') and hasAuthority('OWNER_PAYMENT_MANAGE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Action",
+    "key": false,
+    "extra": "@RequestParam @Pattern(regexp=\"[A-Za-z0-9_-]{8,80}\") String receipt",
+    "summary": "Confirm approved cash refund actually returned",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "version": "{{refundVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/refunds/{{refundId}}/confirm-cash?receipt={{cashRefundReceipt}}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/commission-rules",
+    "permission": "hasAuthority('COMMISSION_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "List commission rules",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/commission-rules"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commission-rules",
+    "permission": "hasAuthority('COMMISSION_MANAGE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Commission",
+    "key": false,
+    "extra": "",
+    "summary": "Create effective commission rule",
+    "folder": "14",
+    "created": true,
+    "example": {
+      "serviceType": "RESTAURANT",
+      "commissionType": "PERCENTAGE",
+      "commissionValue": 5,
+      "effectiveFrom": "{{ruleFrom}}",
+      "effectiveUntil": "{{ruleUntil}}",
+      "active": true
+    },
+    "postmanUrl": "{{baseUrl}}/admin/commission-rules"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/commission-rules/{id}/disable",
+    "permission": "hasAuthority('COMMISSION_MANAGE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Disable commission rule for future payments",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "version": "{{commissionVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/commission-rules/{{commissionId}}/disable"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/settlements",
+    "permission": "hasAuthority('SETTLEMENT_MANAGE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.SettlementCreate",
+    "key": true,
+    "extra": "",
+    "summary": "Create non-duplicated settlement ledger batch",
+    "folder": "14",
+    "created": true,
+    "example": {
+      "restaurantId": "{{restaurantId}}",
+      "periodStart": "{{settlementFrom}}",
+      "periodEnd": "{{settlementUntil}}"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/settlements"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/settlements",
+    "permission": "hasAuthority('SETTLEMENT_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List settlement batches",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/settlements?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/settlements/{id}/status",
+    "permission": "hasAuthority('SETTLEMENT_MANAGE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.SettlementAction",
+    "key": false,
+    "extra": "",
+    "summary": "Record settlement processing and external transfer reference",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "version": "{{settlementVersion}}",
+      "status": "PROCESSING",
+      "settlementReference": null,
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/settlements/{{settlementId}}/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/settlements",
+    "permission": "hasRole('OWNER') and hasAuthority('OWNER_PAYMENT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List owned restaurant settlement batches",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/settlements?page=0&size=20"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/payments/webhooks/zoho",
+    "permission": "PUBLIC",
+    "body": "RAW_WEBHOOK",
+    "key": false,
+    "extra": "",
+    "summary": "Provider-signed raw webhook",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "event_id": "{{webhookEventId}}",
+      "event_type": "payment.succeeded",
+      "account_id": "{{zohoAccountId}}",
+      "live_mode": false,
+      "event_object": {
+        "payment": {
+          "payment_id": "{{gatewayPaymentId}}"
+        }
+      }
+    },
+    "postmanUrl": "{{baseUrl}}/payments/webhooks/zoho"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/wallet",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load own wallet",
+    "folder": "15",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/wallet"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/rewards",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load own rewards",
+    "folder": "16",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/rewards"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/wallet/transactions",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "Load own wallet/transactions",
+    "folder": "15",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/wallet/transactions?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/rewards/history",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "Load own rewards/history",
+    "folder": "16",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/rewards/history?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/rewards/how-to-earn",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "List active reward rules",
+    "folder": "16",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/rewards/how-to-earn"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/rewards/calculate-redemption",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.wallet.dto.WalletRequests.Redemption",
+    "key": false,
+    "extra": "",
+    "summary": "Calculate reward conversion on server",
+    "folder": "16",
+    "created": false,
+    "example": {
+      "points": 10
+    },
+    "postmanUrl": "{{baseUrl}}/customer/rewards/calculate-redemption"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/rewards/redeem",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.wallet.dto.WalletRequests.Redemption",
+    "key": true,
+    "extra": "",
+    "summary": "Redeem points to wallet exactly once",
+    "folder": "16",
+    "created": false,
+    "example": {
+      "points": 10
+    },
+    "postmanUrl": "{{baseUrl}}/customer/rewards/redeem"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/rewards/claim",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.wallet.dto.WalletRequests.Claim",
+    "key": true,
+    "extra": "",
+    "summary": "Claim verified spend, first-booking or review reward",
+    "folder": "16",
+    "created": false,
+    "example": {
+      "ruleType": "SPEND",
+      "referenceId": "{{paymentId}}"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/rewards/claim"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/wallets",
+    "permission": "hasAuthority('WALLET_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List wallet balances",
+    "folder": "15",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/wallets?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/wallets/{id}",
+    "permission": "hasAuthority('WALLET_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Get customer wallet by customer profile ID",
+    "folder": "15",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/wallets/{{walletCustomerId}}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/wallets/{id}/adjust",
+    "permission": "hasAuthority('WALLET_MANAGE')",
+    "body": "com.bookeat.wallet.dto.WalletRequests.Adjustment",
+    "key": true,
+    "extra": "",
+    "summary": "Audit and apply manual wallet adjustment",
+    "folder": "15",
+    "created": false,
+    "example": {
+      "amount": 10,
+      "points": 0,
+      "reason": "Approved service credit; enter the real case reference"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/wallets/{{walletCustomerId}}/adjust"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/reward-rules",
+    "permission": "hasAuthority('REWARD_MANAGE')",
+    "body": "com.bookeat.wallet.dto.WalletRequests.Rule",
+    "key": false,
+    "extra": "",
+    "summary": "Create configurable reward rule",
+    "folder": "16",
+    "created": true,
+    "example": {
+      "ruleType": "SPEND",
+      "minimumSpend": 100,
+      "points": 10,
+      "conversionValue": 0,
+      "active": true,
+      "effectiveFrom": "{{ruleFrom}}",
+      "effectiveUntil": "{{ruleUntil}}"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/reward-rules"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/reward-rules/{id}/disable",
+    "permission": "hasAuthority('REWARD_MANAGE')",
+    "body": "com.bookeat.payment.dto.PaymentRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Disable reward rule",
+    "folder": "16",
+    "created": false,
+    "example": {
+      "version": "{{rewardRuleVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/reward-rules/{{rewardRuleId}}/disable"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/reviews",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.review.dto.ReviewRequests.Create",
+    "key": true,
+    "extra": "",
+    "summary": "Review completed own reservation or food order",
+    "folder": "17",
+    "created": true,
+    "example": {
+      "reservationId": "{{reservationId}}",
+      "rating": 5,
+      "foodRating": 5,
+      "serviceRating": 5,
+      "ambienceRating": 4,
+      "comment": "Good meal and service"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/reviews"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/reviews",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List own reviews",
+    "folder": "17",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/reviews?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/customer/reviews/{id}",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.review.dto.ReviewRequests.Update",
+    "key": false,
+    "extra": "",
+    "summary": "Edit own review without bypassing moderation",
+    "folder": "17",
+    "created": false,
+    "example": {
+      "version": "{{reviewVersion}}",
+      "rating": 4,
+      "foodRating": 4,
+      "serviceRating": 5,
+      "ambienceRating": 4,
+      "comment": "Updated review"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/reviews/{{reviewId}}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/customer/reviews/{id}",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.review.dto.ReviewRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Delete own review and refresh rating aggregate",
+    "folder": "17",
+    "created": false,
+    "example": {
+      "version": "{{reviewVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/reviews/{{reviewId}}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/restaurants/{restaurantId}/reviews",
+    "permission": "PUBLIC",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List visible public restaurant reviews",
+    "folder": "17",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/restaurants/{{restaurantId}}/reviews?page=0&size=20"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/reviews/{id}/reply",
+    "permission": "hasRole('OWNER') and hasAuthority('RESTAURANT_OWN_MANAGE')",
+    "body": "com.bookeat.review.dto.ReviewRequests.Reply",
+    "key": false,
+    "extra": "",
+    "summary": "Reply to a review of owned restaurant",
+    "folder": "17",
+    "created": false,
+    "example": {
+      "version": "{{reviewVersion}}",
+      "reply": "Thank you for visiting."
+    },
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/reviews/{{reviewId}}/reply"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/reviews/{id}/hide",
+    "permission": "hasAuthority('REVIEW_MODERATE')",
+    "body": "com.bookeat.review.dto.ReviewRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Moderate review: hide",
+    "folder": "17",
+    "created": false,
+    "example": {
+      "version": "{{reviewVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/reviews/{{reviewId}}/hide"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/reviews/{id}/restore",
+    "permission": "hasAuthority('REVIEW_MODERATE')",
+    "body": "com.bookeat.review.dto.ReviewRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Moderate review: restore",
+    "folder": "17",
+    "created": false,
+    "example": {
+      "version": "{{reviewVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/reviews/{{reviewId}}/restore"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/support/tickets",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.support.dto.SupportRequests.Create",
+    "key": true,
+    "extra": "",
+    "summary": "Create customer support ticket",
+    "folder": "18",
+    "created": true,
+    "example": {
+      "category": "BOOKING",
+      "subject": "Help with my booking",
+      "description": "Enter the actual issue and booking reference.",
+      "priority": "NORMAL"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/support/tickets"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/support/tickets",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List customer support tickets",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/support/tickets?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/support/tickets/{id}",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load scoped support ticket",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/support/tickets/{{supportTicketId}}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/support/tickets/{id}/messages",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "Load paged support conversation",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/support/tickets/{{supportTicketId}}/messages?page=0&size=20"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/support/tickets/{id}/messages",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.support.dto.SupportRequests.Message",
+    "key": true,
+    "extra": "",
+    "summary": "Add scoped support message",
+    "folder": "18",
+    "created": true,
+    "example": {
+      "message": "Additional information about this request."
+    },
+    "postmanUrl": "{{baseUrl}}/customer/support/tickets/{{supportTicketId}}/messages"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/customer/support/tickets/{id}/close",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.support.dto.SupportRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Close own support ticket",
+    "folder": "18",
+    "created": false,
+    "example": {
+      "version": "{{supportVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/support/tickets/{{supportTicketId}}/close"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/owner/support/tickets",
+    "permission": "hasRole('OWNER')",
+    "body": "com.bookeat.support.dto.SupportRequests.Create",
+    "key": true,
+    "extra": "",
+    "summary": "Create owner support ticket",
+    "folder": "18",
+    "created": true,
+    "example": {
+      "category": "BOOKING",
+      "subject": "Help with my booking",
+      "description": "Enter the actual issue and booking reference.",
+      "priority": "NORMAL"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/support/tickets"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/support/tickets",
+    "permission": "hasRole('OWNER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List owner support tickets",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/support/tickets?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/support/tickets/{id}",
+    "permission": "hasRole('OWNER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load scoped support ticket",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/support/tickets/{{supportTicketId}}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/support/tickets/{id}/messages",
+    "permission": "hasRole('OWNER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "Load paged support conversation",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/support/tickets/{{supportTicketId}}/messages?page=0&size=20"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/owner/support/tickets/{id}/messages",
+    "permission": "hasRole('OWNER')",
+    "body": "com.bookeat.support.dto.SupportRequests.Message",
+    "key": true,
+    "extra": "",
+    "summary": "Add scoped support message",
+    "folder": "18",
+    "created": true,
+    "example": {
+      "message": "Additional information about this request."
+    },
+    "postmanUrl": "{{baseUrl}}/owner/support/tickets/{{supportTicketId}}/messages"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/support/tickets/{id}/close",
+    "permission": "hasRole('OWNER')",
+    "body": "com.bookeat.support.dto.SupportRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Close own support ticket",
+    "folder": "18",
+    "created": false,
+    "example": {
+      "version": "{{supportVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/owner/support/tickets/{{supportTicketId}}/close"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/support/tickets",
+    "permission": "hasAuthority('SUPPORT_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List admin support tickets",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/support/tickets?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/support/tickets/{id}",
+    "permission": "hasAuthority('SUPPORT_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load scoped support ticket",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/support/tickets/{{supportTicketId}}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/support/tickets/{id}/messages",
+    "permission": "hasAuthority('SUPPORT_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "Load paged support conversation",
+    "folder": "18",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/support/tickets/{{supportTicketId}}/messages?page=0&size=20"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/support/tickets/{id}/messages",
+    "permission": "hasAuthority('SUPPORT_MANAGE')",
+    "body": "com.bookeat.support.dto.SupportRequests.Message",
+    "key": true,
+    "extra": "",
+    "summary": "Add scoped support message",
+    "folder": "18",
+    "created": true,
+    "example": {
+      "message": "Additional information about this request."
+    },
+    "postmanUrl": "{{baseUrl}}/admin/support/tickets/{{supportTicketId}}/messages"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/support/tickets/{id}/assign",
+    "permission": "hasAuthority('SUPPORT_MANAGE')",
+    "body": "com.bookeat.support.dto.SupportRequests.Assign",
+    "key": false,
+    "extra": "",
+    "summary": "Support assign",
+    "folder": "18",
+    "created": false,
+    "example": {
+      "version": "{{supportVersion}}",
+      "adminId": "{{supportAdminId}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/support/tickets/{{supportTicketId}}/assign"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/support/tickets/{id}/status",
+    "permission": "hasAuthority('SUPPORT_MANAGE')",
+    "body": "com.bookeat.support.dto.SupportRequests.Status",
+    "key": false,
+    "extra": "",
+    "summary": "Support status",
+    "folder": "18",
+    "created": false,
+    "example": {
+      "version": "{{supportVersion}}",
+      "status": "IN_PROGRESS",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/support/tickets/{{supportTicketId}}/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customer/notifications",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List own in-app notifications",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/notifications?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/customer/notifications/{id}/read",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Mark own notification read",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/notifications/{{notificationId}}/read"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/customer/notifications/read-all",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Mark all own notifications read",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/notifications/read-all"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/notifications",
+    "permission": "hasRole('OWNER')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List own in-app notifications",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/notifications?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/notifications/{id}/read",
+    "permission": "hasRole('OWNER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Mark own notification read",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/notifications/{{notificationId}}/read"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/owner/notifications/read-all",
+    "permission": "hasRole('OWNER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Mark all own notifications read",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/notifications/read-all"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/users",
+    "permission": "hasAuthority('USER_BLOCK')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List safe user profiles without credential fields",
+    "folder": "20",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/users?page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/users/{id}",
+    "permission": "hasAuthority('USER_BLOCK')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Get safe user profile",
+    "folder": "20",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/users/{{adminUserId}}"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/users/{id}/block",
+    "permission": "hasAuthority('USER_BLOCK')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "User block and immediate session invalidation",
+    "folder": "20",
+    "created": false,
+    "example": {
+      "version": "{{adminUserVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/users/{{adminUserId}}/block"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/users/{id}/unblock",
+    "permission": "hasAuthority('USER_BLOCK')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "User unblock and immediate session invalidation",
+    "folder": "20",
+    "created": false,
+    "example": {
+      "version": "{{adminUserVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/users/{{adminUserId}}/unblock"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/users/{id}/activate",
+    "permission": "hasAuthority('USER_BLOCK')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "User activate and immediate session invalidation",
+    "folder": "20",
+    "created": false,
+    "example": {
+      "version": "{{adminUserVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/users/{{adminUserId}}/activate"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/users/{id}/deactivate",
+    "permission": "hasAuthority('USER_BLOCK')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "User deactivate and immediate session invalidation",
+    "folder": "20",
+    "created": false,
+    "example": {
+      "version": "{{adminUserVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/users/{{adminUserId}}/deactivate"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/users",
+    "permission": "hasAuthority('ADMIN_MANAGE')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Create",
+    "key": false,
+    "extra": "",
+    "summary": "Create administrator with explicit existing roles",
+    "folder": "20",
+    "created": true,
+    "example": {
+      "firstName": "New",
+      "lastName": "Administrator",
+      "email": "{{newAdminEmail}}",
+      "password": "{{newAdminPassword}}",
+      "roles": [
+        "SUPPORT_ADMIN"
+      ]
+    },
+    "postmanUrl": "{{baseUrl}}/admin/users"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/users/{id}/roles",
+    "permission": "hasAuthority('ADMIN_ROLE_MANAGE')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Roles",
+    "key": false,
+    "extra": "",
+    "summary": "Change administrator roles with last-super-admin protection",
+    "folder": "20",
+    "created": false,
+    "example": {
+      "version": "{{adminUserVersion}}",
+      "roles": [
+        "SUPPORT_ADMIN"
+      ],
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/users/{{adminUserId}}/roles"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/roles",
+    "permission": "hasAuthority('ADMIN_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "List roles",
+    "folder": "20",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/roles"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/permissions",
+    "permission": "hasAuthority('ADMIN_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "List permissions",
+    "folder": "20",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/permissions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/settings",
+    "permission": "hasAuthority('PLATFORM_SETTINGS_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "List non-secret platform settings",
+    "folder": "20",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/settings"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/settings/{settingKey}",
+    "permission": "hasAuthority('PLATFORM_SETTINGS_MANAGE')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Setting",
+    "key": false,
+    "extra": "",
+    "summary": "Update allowlisted non-secret platform setting",
+    "folder": "20",
+    "created": false,
+    "example": {
+      "value": "support@example.test",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/settings/support.email"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/offers",
+    "permission": "hasAuthority('COUPON_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List offers",
+    "folder": "20",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/offers?page=0&size=20"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/offers",
+    "permission": "hasAuthority('COUPON_MANAGE')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Promotion",
+    "key": false,
+    "extra": "",
+    "summary": "Create offer",
+    "folder": "20",
+    "created": true,
+    "example": {
+      "code": "SAVE10",
+      "title": "Ten percent service offer",
+      "restaurantId": "{{restaurantId}}",
+      "serviceType": "RESTAURANT",
+      "minimumAmount": 100,
+      "discountPercent": 10,
+      "maximumDiscount": 50,
+      "maximumUses": 100,
+      "effectiveFrom": "{{ruleFrom}}",
+      "effectiveUntil": "{{ruleUntil}}",
+      "active": true
+    },
+    "postmanUrl": "{{baseUrl}}/admin/offers"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/coupons",
+    "permission": "hasAuthority('COUPON_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List coupons",
+    "folder": "20",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/coupons?page=0&size=20"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/coupons",
+    "permission": "hasAuthority('COUPON_MANAGE')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Promotion",
+    "key": false,
+    "extra": "",
+    "summary": "Create coupon",
+    "folder": "20",
+    "created": true,
+    "example": {
+      "code": "SAVE10",
+      "title": "Ten percent service offer",
+      "restaurantId": "{{restaurantId}}",
+      "serviceType": "RESTAURANT",
+      "minimumAmount": 100,
+      "discountPercent": 10,
+      "maximumDiscount": 50,
+      "maximumUses": 100,
+      "effectiveFrom": "{{ruleFrom}}",
+      "effectiveUntil": "{{ruleUntil}}",
+      "active": true
+    },
+    "postmanUrl": "{{baseUrl}}/admin/coupons"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/promotions/{id}/disable",
+    "permission": "hasAuthority('COUPON_MANAGE')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Action",
+    "key": false,
+    "extra": "",
+    "summary": "Disable promotion for future attempts",
+    "folder": "20",
+    "created": false,
+    "example": {
+      "version": "{{promotionVersion}}",
+      "reason": "Reviewed and authorized action"
+    },
+    "postmanUrl": "{{baseUrl}}/admin/promotions/{{promotionId}}/disable"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/coupons/validate",
+    "permission": "hasRole('CUSTOMER')",
+    "body": "com.bookeat.admin.dto.AdminRequests.Coupon",
+    "key": false,
+    "extra": "",
+    "summary": "Preview coupon; final amount rechecked during payment creation",
+    "folder": "14",
+    "created": false,
+    "example": {
+      "restaurantId": "{{restaurantId}}",
+      "code": "SAVE10",
+      "amount": 160,
+      "serviceType": "RESTAURANT"
+    },
+    "postmanUrl": "{{baseUrl}}/customer/coupons/validate"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "permission": "hasAuthority('REPORT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Load database-backed platform totals and 30-day trends",
+    "folder": "21",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/reports/{reportType}",
+    "permission": "hasAuthority('REPORT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "@Valid @ModelAttribute com.bookeat.report.dto.ReportQuery q",
+    "summary": "Load bounded, scoped report with date filters",
+    "folder": "21",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/reports/{{reportType}}?fromDate={{reportFrom}}&toDate={{reportUntil}}&page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/reports/{reportType}/export/{format}",
+    "permission": "hasAuthority('REPORT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "REPORT_QUERY",
+    "summary": "Export scoped report",
+    "folder": "21",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/reports/{{reportType}}/export/{{reportFormat}}?fromDate={{reportFrom}}&toDate={{reportUntil}}&page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/reports/{reportType}",
+    "permission": "hasRole('OWNER') and hasAuthority('OWNER_REPORT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "@Valid @ModelAttribute com.bookeat.report.dto.ReportQuery q",
+    "summary": "Load bounded, scoped report with date filters",
+    "folder": "21",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/reports/{{reportType}}?fromDate={{reportFrom}}&toDate={{reportUntil}}&page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/owner/restaurants/{restaurantId}/reports/{reportType}/export/{format}",
+    "permission": "hasRole('OWNER') and hasAuthority('OWNER_REPORT_VIEW')",
+    "body": null,
+    "key": false,
+    "extra": "REPORT_QUERY",
+    "summary": "Export scoped report",
+    "folder": "21",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/owner/restaurants/{{restaurantId}}/reports/{{reportType}}/export/{{reportFormat}}?fromDate={{reportFrom}}&toDate={{reportUntil}}&page=0&size=20"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/notifications",
+    "permission": "hasAuthority('NOTIFICATION_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "@RequestParam(defaultValue=\"0\") @Min(0) int page,@RequestParam(defaultValue=\"20\") @Min(1) @Max(100) int size",
+    "summary": "List own in-app notifications",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/notifications?page=0&size=20"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/notifications/{id}/read",
+    "permission": "hasAuthority('NOTIFICATION_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Mark own notification read",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/notifications/{{notificationId}}/read"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/notifications/read-all",
+    "permission": "hasAuthority('NOTIFICATION_MANAGE')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Mark all own notifications read",
+    "folder": "19",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/admin/notifications/read-all"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customer/payments/{id}/refresh",
+    "permission": "hasRole('CUSTOMER')",
+    "body": null,
+    "key": false,
+    "extra": "",
+    "summary": "Refresh own payment from Zoho session evidence",
+    "folder": "14",
+    "created": false,
+    "example": null,
+    "postmanUrl": "{{baseUrl}}/customer/payments/{{paymentId}}/refresh"
+  }
+]

@@ -1,0 +1,39 @@
+$kind: http-request
+description: |-
+  Create owner support ticket.
+  Required authority: hasRole('OWNER').
+  See docs/PHASE9_15_API.md. Populate IDs from real responses; reload the affected version before a new write. Dates are examples and must match your test clock.
+  Reuse this saved intent key for an exact retry. Clear intent915_63 before a different business intent. Never auto-retry unknown gateway outcomes with a new key.
+url: "{{baseUrl}}/owner/support/tickets"
+method: POST
+headers:
+  Idempotency-Key: "{{intent915_63}}"
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "category": "BOOKING",
+      "subject": "Help with my booking",
+      "description": "Enter the actual issue and booking reference.",
+      "priority": "NORMAL"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{ownerToken}}"
+scripts:
+  - type: beforeRequest
+    code: if (!pm.environment.get("intent915_63")) pm.environment.set("intent915_63", pm.variables.replaceIn("{{$guid}}"));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+        const result = pm.response.json();
+        pm.test("Success envelope", () => pm.expect(result.success).to.eql(true));
+        const data = result.data || {};
+        if (data.id) pm.environment.set("supportTicketId", data.id);
+        if (data.version !== undefined) pm.environment.set("supportVersion", String(data.version));
+      }
+    language: text/javascript
+order: 7000

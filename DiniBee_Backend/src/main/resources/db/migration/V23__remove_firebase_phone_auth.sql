@@ -1,0 +1,2 @@
+ALTER TABLE users DROP COLUMN IF EXISTS firebase_uid;
+ALTER TABLE users DROP COLUMN IF EXISTS phone_verified;

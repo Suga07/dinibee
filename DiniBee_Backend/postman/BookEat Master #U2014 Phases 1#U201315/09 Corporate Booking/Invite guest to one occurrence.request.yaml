@@ -1,0 +1,32 @@
+$kind: http-request
+description: |-
+  Requires corporate booking version. Returns a private invitation; no email is sent. Organizer counts as one seat.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/customer/corporate-bookings/{{corporateBookingId}}/guests?version={{corporateVersion}}"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Invited guest",
+      "email": "{{guestEmail}}",
+      "phone": null,
+      "employeeCode": null
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      if(d && d.invitation)pm.environment.set("corporateInviteCode",d.invitation.inviteCode);
+      }
+    language: text/javascript
+order: 4000

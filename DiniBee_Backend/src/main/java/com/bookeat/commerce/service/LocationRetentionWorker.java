@@ -1,0 +1,6 @@
+package com.bookeat.commerce.service;
+import org.springframework.stereotype.Component;import org.springframework.scheduling.annotation.Scheduled;import org.springframework.transaction.annotation.Transactional;import org.springframework.jdbc.core.JdbcTemplate;import lombok.RequiredArgsConstructor;import java.time.Clock;
+@Component @RequiredArgsConstructor public class LocationRetentionWorker {
+ private final JdbcTemplate jdbc;private final Clock clock;
+ @Scheduled(fixedDelayString="${app.privacy.location-cleanup-ms:600000}") @Transactional public void eraseExpiredLocations(){jdbc.update("update on_the_way_order_tracking set consent=false,consented_at=null,customer_latitude=null,customer_longitude=null,restaurant_latitude=null,restaurant_longitude=null,estimated_arrival=null,distance_km=null,last_location_updated_at=null,version=version+1,updated_at=CURRENT_TIMESTAMP where last_location_updated_at<?",java.sql.Timestamp.from(clock.instant().minusSeconds(3600)));jdbc.update("update dining_sessions set check_in_latitude=null,check_in_longitude=null,version=version+1,updated_at=CURRENT_TIMESTAMP where checked_in_at<? and (check_in_latitude is not null or check_in_longitude is not null)",java.sql.Timestamp.from(clock.instant().minusSeconds(86400)));}
+}

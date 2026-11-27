@@ -1,0 +1,35 @@
+{
+  "checked": "2026-09-14",
+  "attempts": [
+    {
+      "command": "mvn clean test",
+      "exit": 127,
+      "status": "NOT EXECUTED",
+      "reason": "mvn not installed"
+    },
+    {
+      "command": "mvn clean package",
+      "exit": 127,
+      "status": "NOT EXECUTED",
+      "reason": "mvn not installed"
+    },
+    {
+      "command": "mvn clean verify -Pintegration",
+      "exit": 127,
+      "status": "NOT EXECUTED",
+      "reason": "mvn not installed"
+    },
+    {
+      "command": "docker --version",
+      "exit": 127,
+      "status": "NOT EXECUTED",
+      "reason": "docker not installed"
+    },
+    {
+      "command": "psql --version",
+      "exit": 127,
+      "status": "NOT EXECUTED",
+      "reason": "psql not installed"
+    }
+  ]
+}

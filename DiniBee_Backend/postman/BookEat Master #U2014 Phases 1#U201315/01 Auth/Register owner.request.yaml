@@ -1,0 +1,30 @@
+$kind: http-request
+description: ""
+url: "{{baseUrl}}/auth/register/owner"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Test",
+      "lastName": "Owner",
+      "email": "{{ownerEmail}}",
+      "password": "{{password}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Expected status 201", function () { pm.response.to.have.status(201); });
+      const result = pm.response.json();
+      pm.test("Response envelope", function () { pm.expect(result).to.have.property("success"); });
+      if (result.success && result.data) {
+        pm.environment.set("ownerToken", result.data.accessToken);
+        pm.environment.set("ownerRefreshToken", result.data.refreshToken);
+        pm.environment.set("ownerUserId", result.data.user.id);
+      }
+    language: text/javascript
+order: 3000

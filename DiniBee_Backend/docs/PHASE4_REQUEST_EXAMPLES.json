@@ -1,0 +1,104 @@
+{
+  "note": "Example bodies use restaurantVersion=0 for illustration only. Use current version returned by API; replace UUIDs with created resources. Prices are decimals, not floating-point calculations.",
+  "tableCreate": {
+    "restaurantVersion": 0,
+    "tableNumber": "T-01",
+    "tableName": "Window table",
+    "capacity": 4,
+    "minimumGuests": 1,
+    "maximumGuests": 4,
+    "floor": 0,
+    "section": "Main dining",
+    "shape": "RECTANGLE",
+    "xPosition": 10,
+    "yPosition": 20,
+    "width": 100,
+    "height": 80,
+    "rotation": 0,
+    "active": true
+  },
+  "tableStatus": {
+    "restaurantVersion": 0,
+    "status": "BLOCKED",
+    "reason": "Private event"
+  },
+  "categoryCreate": {
+    "restaurantVersion": 0,
+    "name": "Main course",
+    "description": "Freshly prepared dishes",
+    "displayOrder": 0,
+    "active": true
+  },
+  "itemCreate": {
+    "restaurantVersion": 0,
+    "categoryId": "11111111-1111-4111-8111-111111111111",
+    "name": "Vegetable curry",
+    "description": "Seasonal vegetables",
+    "basePrice": 180,
+    "discountPrice": 160,
+    "foodType": "VEG",
+    "spiceLevel": "MILD",
+    "imageUrl": null,
+    "available": true,
+    "preOrderAvailable": true,
+    "takeawayAvailable": true,
+    "diniTicketPreOrderAvailable": false,
+    "preparationTimeMinutes": 20,
+    "featured": true,
+    "displayOrder": 0,
+    "variants": [
+      {
+        "id": null,
+        "name": "Family",
+        "price": 300,
+        "active": true
+      }
+    ],
+    "addons": [
+      {
+        "id": null,
+        "name": "Extra rice",
+        "price": 40,
+        "active": true
+      }
+    ]
+  },
+  "itemUpdate": {
+    "restaurantVersion": 0,
+    "categoryId": "11111111-1111-4111-8111-111111111111",
+    "name": "Vegetable curry",
+    "description": "Seasonal vegetables",
+    "basePrice": 180,
+    "discountPrice": 160,
+    "foodType": "VEG",
+    "spiceLevel": "MILD",
+    "imageUrl": null,
+    "available": true,
+    "preOrderAvailable": true,
+    "takeawayAvailable": true,
+    "diniTicketPreOrderAvailable": false,
+    "preparationTimeMinutes": 20,
+    "featured": true,
+    "displayOrder": 0,
+    "variants": [
+      {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "name": "Family",
+        "price": 300,
+        "active": true
+      }
+    ],
+    "addons": [
+      {
+        "id": "33333333-3333-4333-8333-333333333333",
+        "name": "Extra rice",
+        "price": 40,
+        "active": true
+      }
+    ]
+  },
+  "itemAvailability": {
+    "restaurantVersion": 0,
+    "available": false
+  }
+}

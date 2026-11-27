@@ -1,0 +1,1 @@
+Admin v36: Restaurant-wise Pay Bill dashboard, all-restaurant totals, name search, selection drilldown, transaction detail view. Depends on Backend v67 new reporting endpoints. Keep NEXT_PUBLIC_API_BASE_URL set to correct API. npm install --include=optional then npm run dev.

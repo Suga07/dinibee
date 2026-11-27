@@ -1,0 +1,18 @@
+$kind: http-request
+description: |-
+  Public. Filters: restaurantName, city, latitude/longitude, radius km, cuisine, minimum rating, foodType, serviceType, openNow, offerAvailable, sort NAME/RATING/DISTANCE, page and size. Default service RESTAURANT. Unrated venues have rating 0.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/restaurants/search"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      }
+    language: text/javascript
+order: 5000

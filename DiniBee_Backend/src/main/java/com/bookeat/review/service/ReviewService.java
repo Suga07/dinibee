@@ -1,0 +1,3 @@
+package com.bookeat.review.service;
+import com.bookeat.review.dto.*;import com.bookeat.common.response.PageResponse;import java.util.UUID;
+public interface ReviewService {ReviewResponse create(UUID actor,String key,ReviewRequests.Create request);ReviewResponse update(UUID actor,UUID id,ReviewRequests.Update request);void delete(UUID actor,UUID id,ReviewRequests.Action request);PageResponse<ReviewResponse> own(UUID actor,int page,int size);PageResponse<ReviewResponse> publicReviews(UUID restaurant,int page,int size);ReviewResponse reply(UUID actor,UUID restaurant,UUID id,ReviewRequests.Reply request);ReviewResponse moderate(UUID actor,UUID id,ReviewRequests.Action request,boolean hide);}

@@ -1,0 +1,20 @@
+$kind: http-request
+description: |-
+  Requires authenticated customer with verified matching email; guest can then place individual orders within the occurrence budget.
+
+  See docs/PHASE5_8_API.md for prerequisites. Refresh resource versions before each mutation. These requests are separate scenarios, not a single sequential collection run.
+url: "{{baseUrl}}/customer/corporate-bookings/join/{{corporateInviteCode}}"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Successful response", () => pm.expect(pm.response.code).to.be.within(200, 299));
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+      const d = pm.response.json().data;
+      }
+    language: text/javascript
+order: 5000

@@ -1,0 +1,10 @@
+# Use this workspace to collaborate
+workspace:
+  id: d9c8fc77-ec18-4646-85ed-f3f2ca5ab863
+
+localResources:
+  collections:
+    - ../BookEat_Master.postman_collection.json
+    - ../BookEat Master — Phases 1–15
+  environments:
+    - ../BookEat Local.environment.yaml

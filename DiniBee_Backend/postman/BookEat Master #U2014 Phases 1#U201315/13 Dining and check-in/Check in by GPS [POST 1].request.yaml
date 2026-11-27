@@ -1,0 +1,34 @@
+$kind: http-request
+description: |-
+  Check in by GPS.
+  Required authority: hasRole('CUSTOMER').
+  See docs/PHASE9_15_API.md. Populate IDs from real responses; reload the affected version before a new write. Dates are examples and must match your test clock.
+url: "{{baseUrl}}/customer/reservations/{{reservationId}}/check-in/gps"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "version": {{reservationVersion}},
+      "consent": true,
+      "latitude": 13.0,
+      "longitude": 80.0
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{customerToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code >= 200 && pm.response.code < 300) {
+        const result = pm.response.json();
+        pm.test("Success envelope", () => pm.expect(result.success).to.eql(true));
+        const data = result.data || {};
+        if (data.id) pm.environment.set("diningSessionId", data.id);
+        if (data.version !== undefined) pm.environment.set("diningVersion", String(data.version));
+      }
+    language: text/javascript
+order: 1000

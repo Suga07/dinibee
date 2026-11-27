@@ -1,0 +1,17 @@
+scripts/check_onboarding_workflow.py
+scripts/qa/OnboardingWorkflowChecks.java
+src/main/java/com/bookeat/restaurant/controller/OwnerRestaurantController.java
+src/main/java/com/bookeat/restaurant/dto/OnboardingForm.java
+src/main/java/com/bookeat/restaurant/dto/RestaurantRequests.java
+src/main/java/com/bookeat/restaurant/dto/RestaurantResponses.java
+src/main/java/com/bookeat/restaurant/entity/Restaurant.java
+src/main/java/com/bookeat/restaurant/enums/DocumentType.java
+src/main/java/com/bookeat/restaurant/mapper/RestaurantMapper.java
+src/main/java/com/bookeat/restaurant/service/OnboardingProgressService.java
+src/main/java/com/bookeat/restaurant/service/OwnerOnboardingService.java
+src/main/java/com/bookeat/restaurant/service/WorkflowRules.java
+src/main/java/com/bookeat/restaurant/service/impl/AdminRestaurantServiceImpl.java
+src/main/java/com/bookeat/restaurant/service/impl/OwnerOnboardingServiceImpl.java
+src/main/java/com/bookeat/restaurant/service/impl/RestaurantDocumentServiceImpl.java
+src/main/resources/db/migration/V25__persist_owner_onboarding_form.sql
+src/test/java/com/bookeat/RestaurantOnboardingIT.java
